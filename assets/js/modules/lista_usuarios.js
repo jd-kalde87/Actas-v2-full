@@ -5,21 +5,28 @@ window.inicializarVista = function() {
     // ****** INICIO DE LAS MODIFICACIONES ******
     const spinner = $('#spinner-usuarios');
     const tablaElement = $('#tabla-usuarios');
+    const mainContent = $('#main-content');
 
     // Ocultamos la tabla al inicio para que solo se vea el spinner
     tablaElement.hide();
     spinner.show();
 
     const tabla = tablaElement.DataTable({
+        "destroy": true,
         "responsive": true,
         "lengthChange": false,
         "autoWidth": false,
         "language": { /* ... objeto de traducción ... */ },
-        "ajax": {
-            "url": `${APP_CONFIG.backendUrl}usuario/obtener`,
-            "type": "GET",
-            "headers": { "Authorization": `Bearer ${APP_CONFIG.token}` },
-            "dataSrc": ""
+        "ajax": function(data, callback, settings) {
+            apiFetch('usuario/obtener')
+                .then(datos => {
+                    callback({ data: datos });
+                })
+                .catch(error => {
+                    console.error("Error al cargar los usuarios:", error);
+                    $('#tabla-container').html('<p class="text-danger">No se pudieron cargar los datos de los usuarios.</p>');
+                    callback({ data: [] }); 
+                });
         },
         "columns": [
             { "data": "cedula" },
@@ -44,41 +51,29 @@ window.inicializarVista = function() {
             spinner.hide();
             tablaElement.show();
         },
-        "error": function (xhr, error, thrown) {
-            spinner.html('<p class="text-danger">No se pudieron cargar los datos.</p>');
-            console.error("Error al cargar los usuarios: ", error, thrown);
-            if (xhr.status === 401) {
-                window.mostrarNotificacion('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.', 'danger');
-            }
-        }
     });
     // ****** FIN DE LAS MODIFICACIONES ******
 
-    // El resto de la lógica para los botones no cambia
-    $('#tabla-usuarios tbody').on('click', '.btn-editar-usuario', function() {
+        // --- INICIO DE LA CORRECCIÓN ---
+    // Movemos los listeners para que "escuchen" desde '#main-content'.
+    // Esto garantiza que funcionen aunque la tabla se regenere.
+    mainContent.off('click', '.btn-editar-usuario').on('click', '.btn-editar-usuario', function() {
         const data = tabla.row($(this).parents('tr')).data();
         window.cargarVista('editar_usuario', data.cedula);
     });
 
-    $('#tabla-usuarios tbody').on('click', '.btn-eliminar-usuario', function() {
+    mainContent.off('click', '.btn-eliminar-usuario').on('click', '.btn-eliminar-usuario', function() {
         const data = tabla.row($(this).parents('tr')).data();
         if (confirm(`¿Estás seguro de que deseas eliminar al usuario ${data.nombre}?`)) {
-            const url = `${APP_CONFIG.backendUrl}usuario/eliminar/${data.cedula}`;
-            fetch(url, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${APP_CONFIG.token}` }
-            })
-            .then(response => {
-                if (!response.ok) throw new Error(`Error del servidor: ${response.statusText}`);
-                return response.json();
-            })
-            .then(() => {
-                window.mostrarNotificacion('Usuario eliminado exitosamente.', 'success');
-                tabla.ajax.reload();
-            })
-            .catch(error => {
-                window.mostrarNotificacion(`No se pudo eliminar el usuario. ${error.message}`, 'danger');
-            });
+            // Usamos nuestra nueva función apiFetch para la consistencia
+            apiFetch(`usuario/eliminar/${data.cedula}`, { method: 'DELETE' })
+                .then(() => {
+                    window.mostrarNotificacion('Usuario eliminado exitosamente.', 'success');
+                    tabla.ajax.reload();
+                })
+                .catch(error => {
+                    window.mostrarNotificacion(`No se pudo eliminar el usuario. ${error.message}`, 'danger');
+                });
         }
     });
 };

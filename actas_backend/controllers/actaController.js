@@ -75,17 +75,14 @@ exports.crearActa = async (req, res) => {
         res.status(500).json({ message: 'Error en el servidor.' });
     }
 };
-// Lógica para actualizar un acta existente (para editar o finalizar)
-// En: actas_backend/controllers/actaController.js
-
+// --- INICIO DE LA MODIFICACIÓN ---
 // Lógica para actualizar un acta existente (CON LA LÓGICA DE BLOQUEO INTEGRADA)
 exports.actualizarActa = async (req, res) => {
     const { codigo } = req.params;
     const camposAActualizar = req.body;
 
     try {
-        // --- INICIO DE LA VERIFICACIÓN DE BLOQUEO ---
-        // Obtenemos el estado actual del acta y la cantidad de asistentes en una sola consulta
+        // 1. Obtenemos el estado actual del acta y la cantidad de asistentes en una sola consulta
         const [actas] = await db.query('SELECT firma, cantidad_asistentes FROM acta WHERE codigo = ?', [codigo]);
         if (actas.length === 0) {
             return res.status(404).json({ message: 'Acta no encontrada.' });
@@ -93,16 +90,22 @@ exports.actualizarActa = async (req, res) => {
         const actaActual = actas[0];
         const estadoActual = actaActual.firma;
 
-        // Si el acta ya está finalizada, rechazamos CUALQUIER intento de modificación.
+        // 2. Si el acta ya está finalizada, rechazamos CUALQUIER intento de modificación.
         if (estadoActual.toLowerCase() === 'finalizado') {
             return res.status(403).json({ // 403 Forbidden: Prohibido
                 message: 'Acción prohibida: Esta acta está finalizada y no puede ser modificada.' 
             });
         }
-        // --- FIN DE LA VERIFICACIÓN DE BLOQUEO ---
         
-        // Si el acta NO está finalizada, el código continúa.
-        // Ahora, verificamos si el usuario está INTENTANDO finalizarla.
+        // 3. Re-añadimos la conversión de arrays a texto para los temarios/usuarios
+        if (camposAActualizar.temario && Array.isArray(camposAActualizar.temario)) {
+            camposAActualizar.temario = camposAActualizar.temario.join(',');
+        }
+        if (camposAActualizar.usuarios && Array.isArray(camposAActualizar.usuarios)) {
+            camposAActualizar.usuarios = camposAActualizar.usuarios.join(',');
+        }
+
+        // 4. Si el acta NO está finalizada, verificamos si el usuario está INTENTANDO finalizarla.
         if (camposAActualizar.firma && camposAActualizar.firma.toLowerCase() === 'finalizado') {
             const [firmasResult] = await db.query('SELECT COUNT(*) AS totalFirmas FROM firmas_user WHERE acta = ?', [codigo]);
             const firmasRegistradas = firmasResult[0].totalFirmas;
@@ -116,23 +119,27 @@ exports.actualizarActa = async (req, res) => {
             }
         }
 
-        // Si todas las verificaciones pasan, se ejecuta la actualización.
+        // 5. Si todas las verificaciones pasan, se ejecuta la actualización.
         const [result] = await db.query('UPDATE acta SET ? WHERE codigo = ?', [camposAActualizar, codigo]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Acta no encontrada.' });
         }
         res.json({ message: 'Acta actualizada exitosamente.' });
+
     } catch (error) {
         console.error("Error al actualizar el acta:", error);
         res.status(500).json({ message: 'Error en el servidor.' });
     }
 };
+// --- FIN DE LA MODIFICACIÓN ---
 
-// Lógica para eliminar un acta (CON LA LÓGICA DE BLOQUEO AÑADIDA)
+// Lógica para eliminar un acta
 exports.eliminarActa = async (req, res) => {
-    const { codigo } = req.params;
     try {
-        // --- INICIO DE LA NUEVA VERIFICACIÓN DE BLOQUEO ---
+        const { codigo } = req.params;
+
+        // --- INICIO DE LA MODIFICACIÓN ---
+        // Se añade la verificación de bloqueo antes de permitir la eliminación.
         const [actas] = await db.query('SELECT firma FROM acta WHERE codigo = ?', [codigo]);
         if (actas.length === 0) {
             return res.status(404).json({ message: 'Acta no encontrada.' });
@@ -140,7 +147,7 @@ exports.eliminarActa = async (req, res) => {
         if (actas[0].firma.toLowerCase() === 'finalizado') {
             return res.status(403).json({ message: 'Acción prohibida: Un acta finalizada no puede ser eliminada.' });
         }
-        // --- FIN DE LA NUEVA VERIFICACIÓN DE BLOQUEO ---
+        // --- FIN DE LA MODIFICACIÓN ---
 
         // Si no está finalizada, procede a eliminar como antes
         await db.query('DELETE FROM contenido_acta WHERE acta_ID = ?', [codigo]);
@@ -150,6 +157,7 @@ exports.eliminarActa = async (req, res) => {
             return res.status(404).json({ message: 'Acta no encontrada.' });
         }
         res.json({ message: 'Acta y todos sus datos relacionados han sido eliminados.' });
+
     } catch (error) {
         console.error("Error al eliminar el acta:", error);
         res.status(500).json({ message: 'Error en el servidor.' });
@@ -178,7 +186,7 @@ exports.obtenerPdfData = async (req, res) => {
         const { codigo } = req.params;
 
         // 1. Obtener los datos principales del acta
-        const [actas] = await db.query('SELECT * FROM acta WHERE codigo = ?', [codigo]);
+        const [actas] = await db.query('SELECT *, cantidad_asistentes as numeroParticipantes FROM acta WHERE codigo = ?', [codigo]);
         if (actas.length === 0) {
             return res.status(404).json({ message: 'Acta no encontrada.' });
         }

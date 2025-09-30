@@ -19,6 +19,7 @@ router.post('/crear-asistente', usuarioController.crearAsistentePublico);
 
 // --- Rutas Protegidas (requieren token de admin) ---
 router.get('/obtener', authMiddleware, usuarioController.obtenerUsuarios);
+router.get('/verificar-token', authMiddleware, usuarioController.verificarToken);
 router.get('/obtener/:cedula', authMiddleware, usuarioController.obtenerUsuarioPorCedula);
 router.post('/crear', authMiddleware, usuarioController.crearUsuario);
 router.patch('/actualizar/:cedula', authMiddleware, usuarioController.actualizarUsuario);

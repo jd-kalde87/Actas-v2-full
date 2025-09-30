@@ -134,7 +134,12 @@ exports.eliminarUsuario = async (req, res) => {
         res.status(500).json({ message: 'Error en el servidor al eliminar usuario.' });
     }
 };
-
+// Esta función solo se ejecuta si el authMiddleware (el "guardia") dice que el token es válido
+exports.verificarToken = (req, res) => {
+    // Si el código llega hasta aquí, significa que el token es bueno.
+    // Simplemente enviamos una respuesta de éxito para confirmar.
+    res.json({ success: true, message: 'Token válido.' });
+};
 // --- NUEVA FUNCIÓN PARA REGISTRO PÚBLICO ---
 exports.crearAsistentePublico = async (req, res) => {
     // Tomamos los datos del formulario que envía el frontend
@@ -167,4 +172,11 @@ exports.crearAsistentePublico = async (req, res) => {
         }
         res.status(500).json({ message: 'Error en el servidor.' });
     }
+
+    // Esta función solo se ejecuta si el authMiddleware dice que el token es válido
+    exports.verificarToken = (req, res) => {
+    // Si llegamos aquí, el token es bueno. Simplemente enviamos una respuesta de éxito.
+    res.json({ success: true, message: 'Token válido.' });
+    };
+
 };

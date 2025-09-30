@@ -27,33 +27,32 @@ window.inicializarVista = function() {
         // 3. Enviar los datos al endpoint de creación del backend
         const url = `${APP_CONFIG.backendUrl}usuario/crear`;
 
-        fetch(url, {
+        const options = {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${APP_CONFIG.token}`
-            },
             body: JSON.stringify(datosUsuario)
-        })
-        .then(response => {
-            if (response.status !== 201) { // 201 = Creado
-                // Si el backend devuelve un error, lo intentamos mostrar
-                return response.json().then(errorData => {
-                    throw new Error(errorData.message || 'Error al crear el usuario.');
-                });
-            }
-            return response.json();
-        })
-        .then(() => {
-            window.mostrarNotificacion('Usuario creado exitosamente.', 'success');
-            // Redirigir de vuelta a la lista de usuarios para ver el nuevo registro
-            window.cargarVista('lista_usuarios');
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            window.mostrarNotificacion(error.message, 'danger');
-        });
+        };
+
+        apiFetch('usuario/crear', options)
+            .then(() => {
+                // Si la creación es exitosa (status 201), guardamos la notificación para la siguiente vista
+                const notificacion = {
+                    mensaje: 'Usuario creado exitosamente.',
+                    tipo: 'success'
+                };
+                sessionStorage.setItem('notificacionPendiente', JSON.stringify(notificacion));
+                
+                // Redirigir de vuelta a la lista de usuarios
+                window.cargarVista('lista_usuarios');
+            })
+            .catch(error => {
+                // apiFetch ya maneja la sesión expirada, esto atrapará otros errores
+                // (ej: usuario duplicado)
+                console.error('Error al crear usuario:', error);
+                window.mostrarNotificacion(error.message, 'danger');
+            });
+        // --- FIN DE LA MODIFICACIÓN ---
     });
+
 
     // Desvincular evento al salir de la vista para evitar que se ejecute múltiples veces
     mainContent.on('remove', function() {

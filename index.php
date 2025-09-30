@@ -19,11 +19,12 @@ $user_nombre = $_SESSION['user_nombre'] ?? 'Usuario';
     <link rel="stylesheet" href="libs/admin-lte/plugins/fontawesome-free/css/all.min.css">
     <link rel="stylesheet" href="libs/datatables/datatables.min.css">
     <link rel="stylesheet" href="libs/admin-lte/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="libs/admin-lte/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
 
-    <script>
+        <script>
     const APP_CONFIG = {
-        token: <?php echo json_encode($_SESSION['token']); ?>,
+        token: <?php echo json_encode($_SESSION['token'] ?? null); ?>,
         backendUrl: <?php echo json_encode(BACKEND_API_URL); ?>
     };
     </script>
@@ -98,12 +99,11 @@ $user_nombre = $_SESSION['user_nombre'] ?? 'Usuario';
 <script src="libs/admin-lte/dist/js/adminlte.min.js"></script>
 <script src="libs/datatables/datatables.min.js"></script> 
 <script src="libs/html2canvas/html2canvas.min.js"></script>
-
+<script src="libs/admin-lte/plugins/sweetalert2/sweetalert2.min.js"></script>
 <script src="libs/jspdf/jspdf.umd.min.js"></script>
 <script src="libs/jspdf.plugin.autotable.min.js"></script>
-
 <script src="libs/qrcode/qrcode.min.js"></script>
-
+<script src="assets/js/api.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>
