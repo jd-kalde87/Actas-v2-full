@@ -12,12 +12,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnSpinner = document.getElementById('btn-spinner');
     const errorMessage = document.getElementById('error-message');
 
-    // --- NUEVO: Elementos del modal ---
+    // --- Elementos del modal ---
     const errorModal = document.getElementById('errorModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const okModalBtn = document.getElementById('okModalBtn');
 
-    // --- NUEVO: Funciones para controlar el modal ---
+    // --- Funciones para controlar el modal ---
     function mostrarModalError() {
         errorModal.style.display = 'flex';
     }
@@ -57,9 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const verificacionData = await verificacionResponse.json();
 
             if (verificacionData.yaFirmo) {
-                // --- CORRECCIÓN: Llamamos a nuestra función de JavaScript puro ---
                 mostrarModalError();
-
                 btnValidar.disabled = false;
                 btnText.style.display = 'inline-block';
                 btnSpinner.style.display = 'none';
@@ -83,7 +81,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('Respuesta inesperada del servidor. No se recibió el token.');
                 }
             } else {
-                window.location.href = `crear_asisten te_publico.php?codigo=${ACTA_CODIGO}`;
+                // --- INICIO DE LA CORRECCIÓN ---
+                // Se corrigió el nombre del archivo eliminando el espacio.
+                window.location.href = `crear_asistente_publico.php?codigo=${ACTA_CODIGO}`;
+                // --- FIN DE LA CORRECCIÓN ---
                 throw new Error('Usuario no encontrado, redirigiendo a registro.');
             }
 
