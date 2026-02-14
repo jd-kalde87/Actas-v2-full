@@ -20,7 +20,7 @@ app.use('/actas', require('./routes/actas'));
 app.use('/contenido-actas', require('./routes/contenido'));
 app.use('/firmas-users', require('./routes/firmas'));
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; // <--- Render usa process.env.PORT
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
