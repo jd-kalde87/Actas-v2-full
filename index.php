@@ -12,7 +12,7 @@ $user_nombre = $_SESSION['user_nombre'] ?? 'Usuario';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Panel de Actas | VOSIN S.A.S</title>
+    <title>Panel de Actas v2.1 | VOSIN S.A.S</title>
     <link rel="icon" href="./assets/img/favicon16x16.png" type="image/x-icon">
     
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -22,78 +22,110 @@ $user_nombre = $_SESSION['user_nombre'] ?? 'Usuario';
     <link rel="stylesheet" href="libs/admin-lte/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
 
-        <script>
+    <script>
     const APP_CONFIG = {
         token: <?php echo json_encode($_SESSION['token'] ?? null); ?>,
         backendUrl: <?php echo json_encode(BACKEND_API_URL); ?>
     };
     </script>
 </head>
-<body class="hold-transition sidebar-mini">
+<body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
 
-    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light shadow-sm">
         <ul class="navbar-nav">
             <li class="nav-item">
                 <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            </li>
+            <li class="nav-item d-none d-sm-inline-block">
+                <span class="nav-link font-weight-bold text-secondary">Sistema de Gestión de Actas</span>
+            </li>
+        </ul>
+        
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="logout.php" role="button" title="Cerrar Sesión">
+                    <i class="fas fa-power-off text-danger"></i>
+                </a>
             </li>
         </ul>
     </nav>
     <aside class="main-sidebar sidebar-dark-primary elevation-4">
         <a href="index.php" class="brand-link">
-            <img src="assets/img/logo bombillo.png" alt="VOSIN Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+            <img src="assets/img/logo bombillo.png" alt="VOSIN Logo" class="brand-image img-circle elevation-3" style="opacity: .9; background: white;">
             <span class="brand-text font-weight-light">VOSIN S.A.S</span>
         </a>
+
         <div class="sidebar">
-            <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="user-panel mt-3 pb-3 mb-3 d-flex align-items-center">
                 <div class="image">
-                    <img src="libs/admin-lte/dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
+                    <div class="user-icon-wrapper">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
                 </div>
                 <div class="info">
-                    <a href="#" class="d-block"><?php echo htmlspecialchars($user_nombre); ?></a>
+                    <a href="#" class="d-block font-weight-bold"><?php echo htmlspecialchars($user_nombre); ?></a>
+                    <span class="text-xs text-muted">Conectado</span>
                 </div>
             </div>
+
             <nav class="mt-2">
                 <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                    
                     <li class="nav-item">
                         <a href="#" class="nav-link active" data-vista="dashboard">
-                            <i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p>
+                            <i class="nav-icon fas fa-tachometer-alt"></i>
+                            <p>Dashboard</p>
                         </a>
                     </li>
+
+                    <li class="nav-header text-uppercase text-secondary font-weight-bold" style="font-size: 0.8rem;">Gestión de Actas</li>
+                    
                     <li class="nav-item">
                         <a href="#" class="nav-link" data-vista="crear_acta">
-                            <i class="nav-icon fas fa-plus-circle"></i><p>Nueva Acta</p>
+                            <i class="nav-icon fas fa-plus-circle text-success"></i>
+                            <p>Nueva Acta</p>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="#" class="nav-link" data-vista="lista_actas">
-                            <i class="nav-icon fas fa-file-alt"></i><p>Ver Actas</p>
+                            <i class="nav-icon fas fa-list-alt text-info"></i>
+                            <p>Listado de Actas</p>
                         </a>
                     </li>
-                    <li class="nav-header">ADMINISTRACIÓN</li>
+
+                    <li class="nav-header text-uppercase text-secondary font-weight-bold" style="font-size: 0.8rem;">Configuración</li>
+
                     <li class="nav-item">
                         <a href="#" class="nav-link" data-vista="lista_usuarios">
-                                <i class="nav-icon fas fa-users"></i><p>Gestionar Usuarios</p>
+                            <i class="nav-icon fas fa-users-cog"></i>
+                            <p>Usuarios</p>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="logout.php" class="nav-link">
-                            <i class="nav-icon fas fa-sign-out-alt"></i><p>Cerrar Sesión</p>
+                    
+                    <li class="nav-item mt-4">
+                        <a href="logout.php" class="nav-link bg-danger text-white">
+                            <i class="nav-icon fas fa-sign-out-alt"></i>
+                            <p>Cerrar Sesión</p>
                         </a>
                     </li>
                 </ul>
             </nav>
-        </div>
-    </aside>
+            </div>
+        </aside>
 
     <div class="content-wrapper">
-        <main class="content" id="main-content"></main>
+        <main class="content p-3" id="main-content">
+            </main>
     </div>
-    <footer class="main-footer">
-        <strong>Copyright &copy; 2024-<?php echo date('Y'); ?> <a href="https://vosin.co">VOSIN S.A.S</a>.</strong> Todos los derechos reservados.
+    <footer class="main-footer text-sm">
+        <div class="float-right d-none d-sm-inline-block">
+            <b>Versión</b> 2.1
+        </div>
+        <strong>Copyright &copy; 2024-<?php echo date('Y'); ?> <a href="https://vosin.co" target="_blank">VOSIN S.A.S</a>.</strong> Todos los derechos reservados.
     </footer>
-</div>
 
+</div>
 <script src="libs/admin-lte/plugins/jquery/jquery.min.js"></script>
 <script src="libs/admin-lte/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="libs/admin-lte/dist/js/adminlte.min.js"></script>

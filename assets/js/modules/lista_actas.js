@@ -1,12 +1,5 @@
 // assets/js/modules/lista_actas.js
 
-/**
- * Función de ayuda que toma la URL de una imagen y la convierte
- * a formato Base64. Esto es necesario para incrustar imágenes
- * como el logo directamente en el documento PDF.
- * @param {string} url - La ruta a la imagen (ej: 'assets/img/logo.png').
- * @returns {Promise<string>} Una promesa que se resuelve con la imagen en formato Base64.
- */
 function getBase64Image(url) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -17,307 +10,272 @@ function getBase64Image(url) {
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
-            const dataURL = canvas.toDataURL('image/png');
-            resolve(dataURL);
+            resolve(canvas.toDataURL('image/png'));
         };
-        img.onerror = reject;
+        img.onerror = () => resolve(null); // Si falla, resolvemos null para no romper el flujo
         img.src = url;
     });
 }
 
-/**
- * Función principal que se ejecuta cuando se carga la vista 'lista_actas'.
- * Se encarga de inicializar la DataTable y todos los eventos de los botones.
- */
 window.inicializarVista = function() {
     
-    // Referencias a elementos del DOM para manejarlos fácilmente
     const spinner = $('#spinner-actas');
     const tablaElement = $('#tabla-actas');
-    const mainContent = $('#main-content'); // Contenedor principal para delegar eventos
+    const mainContent = $('#main-content');
 
-    // Muestra el spinner y oculta la tabla mientras se cargan los datos
     tablaElement.hide();
     spinner.show();
 
-    // Inicialización de la librería DataTables
     const tabla = tablaElement.DataTable({
-        "destroy": true, // Permite reinicializar la tabla si ya existía
+        "destroy": true,
         "responsive": true,
         "lengthChange": false,
         "autoWidth": false,
-        "language": { /* ... tu objeto de traducción ... */ },
-        /**
-         * Carga los datos de la tabla de forma asíncrona usando nuestra función apiFetch.
-         * Esto asegura que la petición esté autenticada y maneje errores de sesión.
-         */
+        "language": {
+            "search": "Buscar:",
+            "zeroRecords": "No se encontraron resultados",
+            "info": "Mostrando _START_ a _END_ de _TOTAL_ actas",
+            "infoEmpty": "Mostrando 0 a 0 de 0 actas",
+            "infoFiltered": "(filtrado de _MAX_ actas totales)",
+            "paginate": { "first": "Primero", "last": "Último", "next": "Siguiente", "previous": "Anterior" }
+        },
         "ajax": function(data, callback, settings) {
             apiFetch('actas/obtener')
-                .then(datos => {
-                    callback({ data: datos }); // Entrega los datos a DataTables
-                })
+                .then(datos => { callback({ data: datos }); })
                 .catch(error => {
                     console.error("Error al cargar las actas:", error);
                     $('#tabla-container').html('<p class="text-danger">No se pudieron cargar las actas.</p>');
-                    callback({ data: [] }); // Informa a DataTables que no hay datos
+                    callback({ data: [] });
                 });
         },
-        /**
-         * Define la estructura y el renderizado de cada columna de la tabla.
-         */
         "columns": [
             { "data": "codigo", "title": "Código" },
             { "data": "tema", "title": "Tema" },
             { "data": "lugar", "title": "Lugar" },
-            { "data": "fecha", "title": "Fecha" },
             { 
-                "data": "firma",
-                "title": "Estado",
-                "render": function(data) { // Renderiza el estado como una insignia de color
-                    const estado = String(data).toLowerCase();
+                "data": "fecha", "title": "Fecha",
+                "render": function(data) { return data ? new Date(data).toLocaleDateString('es-CO') : ''; }
+            },
+            { 
+                "data": "firma", "title": "Estado",
+                "render": function(data) {
+                    const estado = String(data || '').toLowerCase();
                     let badgeClass = 'badge-secondary';
                     if (estado === 'finalizado') badgeClass = 'badge-success';
-                    else if (estado === 'borrador') badgeClass = 'badge-primary';
-                    return `<span class="badge ${badgeClass}">${data}</span>`;
+                    else if (estado === 'borrador' || estado === 'activo') badgeClass = 'badge-primary';
+                    return `<span class="badge ${badgeClass}">${data || 'Desconocido'}</span>`;
                 }
             },
             {
-                "data": null,
-                "title": "Acciones",
-                "orderable": false,
-                /**
-                 * Renderiza dinámicamente los botones de acción para cada fila.
-                 * Desactiva los botones si el acta ya está finalizada.
-                 */
+                "data": null, "title": "Acciones", "orderable": false,
                 "render": function(data, type, row) {
-                    const esFinalizado = row.firma.toLowerCase() === 'finalizado';
-                    const btnEditar = `<button class="btn btn-xs btn-primary btn-editar-encabezado" title="Editar Encabezado" ${esFinalizado ? 'disabled' : ''}><i class="fas fa-pencil-alt"></i></button>`;
-                    const btnContenido = `<button class="btn btn-xs btn-success btn-gestionar-contenido" title="Gestionar Contenido" ${esFinalizado ? 'disabled' : ''}><i class="fas fa-stream"></i></button>`;
-                    const btnQr = `<button class="btn btn-xs btn-warning btn-generar-qr" title="Compartir (QR)" ${esFinalizado ? 'disabled' : ''}><i class="fas fa-qrcode"></i></button>`;
-                    const btnFinalizar = `<button class="btn btn-xs btn-info btn-finalizar-acta" title="Finalizar Acta" ${esFinalizado ? 'disabled' : ''}><i class="fas fa-check-circle"></i></button>`;
-                    const btnPdf = `<button class="btn btn-xs btn-danger btn-generar-pdf" title="Generar PDF"><i class="fas fa-file-pdf"></i></button>`;
-                    return `${btnEditar} ${btnContenido} ${btnQr} ${btnFinalizar} ${btnPdf}`;
+                    const esFinalizado = String(row.firma).toLowerCase() === 'finalizado';
+                    const disabledAttr = esFinalizado ? 'disabled' : '';
+                    
+                    return `
+                        <button class="btn btn-xs btn-primary btn-editar-encabezado" title="Editar Encabezado" ${disabledAttr}><i class="fas fa-pencil-alt"></i></button>
+                        <button class="btn btn-xs btn-success btn-gestionar-contenido" title="Gestionar Contenido" ${disabledAttr}><i class="fas fa-stream"></i></button>
+                        <button class="btn btn-xs btn-warning btn-generar-qr" title="Compartir (QR)" ${disabledAttr}><i class="fas fa-qrcode"></i></button>
+                        <button class="btn btn-xs btn-info btn-finalizar-acta" title="Finalizar Acta" ${disabledAttr}><i class="fas fa-check-circle"></i></button>
+                        <button class="btn btn-xs btn-danger btn-generar-pdf" title="Generar PDF"><i class="fas fa-file-pdf"></i></button>
+                    `;
                 }
             }
         ],
-        "order": [[ 3, "desc" ]], // Ordena por fecha descendente por defecto
+        "order": [[ 3, "desc" ]],
         "initComplete": function() {
             spinner.hide();
             tablaElement.show();
         }
     });
 
-    /**
-     * Manejador de eventos principal para TODOS los botones de la tabla.
-     * Se usa "delegación de eventos" anclando el listener a 'mainContent'
-     * para garantizar que funcione incluso si la tabla se destruye y se recrea.
-     */
+    // Manejador de eventos
     mainContent.off('click', '#tabla-actas button').on('click', '#tabla-actas button', async function() {
-        // Se obtiene la información de la fila correspondiente al botón presionado
-        const data = tabla.row($(this).parents('tr')).data();
-        if (!data) return; // Si no hay datos, no hacer nada
+        const tr = $(this).closest('tr');
+        const row = tabla.row(tr);
+        const data = row.data() || tabla.row(tr.prev()).data();
+        
+        if (!data) return;
 
-        // Lógica para el botón "Editar Encabezado"
+        // --- EDITAR ENCABEZADO ---
         if ($(this).hasClass('btn-editar-encabezado')) {
             window.cargarVista('editar_acta', data.codigo);
         } 
-        // Lógica para el botón "Gestionar Contenido"
+        // --- GESTIONAR CONTENIDO ---
         else if ($(this).hasClass('btn-gestionar-contenido')) {
             window.cargarVista('gestionar_contenido', data.codigo);
         } 
-        // Lógica para el botón "Generar QR"
+        // --- GENERAR QR ---
         else if ($(this).hasClass('btn-generar-qr')) {
             window.cargarVista('generar_qr', data.codigo);
         } 
-        
-        // Lógica para el botón "Finalizar Acta"
+        // --- FINALIZAR ACTA ---
         else if ($(this).hasClass('btn-finalizar-acta')) {
             if (confirm(`¿Estás seguro de que deseas finalizar el acta ${data.codigo}?`)) {
-                // Se usa apiFetch para la petición, que maneja errores de sesión
                 apiFetch(`actas/actualizar/${data.codigo}`, {
                     method: 'PATCH',
                     body: JSON.stringify({ firma: 'Finalizado' }) 
                 })
                 .then(() => {
-                    // Se guarda la notificación en sessionStorage para mostrarla después de recargar la vista
-                    const notificacion = { mensaje: 'Acta finalizada exitosamente.', tipo: 'success' };
-                    sessionStorage.setItem('notificacionPendiente', JSON.stringify(notificacion));
-                    window.cargarVista('lista_actas'); // Se recarga la vista
+                    sessionStorage.setItem('notificacionPendiente', JSON.stringify({ mensaje: 'Acta finalizada exitosamente.', tipo: 'success' }));
+                    window.cargarVista('lista_actas');
                 })
-                .catch(error => {
-                    // Muestra errores de negocio (ej: faltan firmas) o de servidor
-                    window.mostrarNotificacion(error.message, 'danger');
-                });
+                .catch(error => window.mostrarNotificacion(error.message, 'danger'));
             }
         } 
-        
-        // Lógica para el botón "Generar PDF"
+        // --- GENERAR PDF (TRADUCCIÓN APLICADA) ---
         else if ($(this).hasClass('btn-generar-pdf')) {
             const boton = $(this);
+            const iconoOriginal = boton.html();
             boton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-            window.mostrarNotificacion('Generando PDF, por favor espera...', 'info');
+            window.mostrarNotificacion('Generando PDF...', 'info');
 
             try {
-                const colorPrincipal = '#2c3e50';
-                const colorSecundario = '#ff7300';
-
-                // Se usa Promise.all con apiFetch para obtener logo y datos del PDF
                 const [logoBase64, pdfData] = await Promise.all([
                     getBase64Image('assets/img/logo2.png'),
                     apiFetch(`actas/obtener-pdf-data/${data.codigo}`)
                 ]);
-                
-                if (!pdfData || !pdfData.acta) throw new Error('El acta no tiene datos válidos.');
+
+                if (!pdfData || !pdfData.acta) throw new Error('No se encontraron datos para generar el PDF.');
+
+                // --- MAPEO DE TIPOS DE REUNIÓN ---
+                const mapaTipos = {
+                    '1': 'Comité Mensual',
+                    '2': 'Verificación en Campo',
+                    '3': 'Virtual',
+                    '10': 'Otros'
+                };
+                // Si el código existe en el mapa, usa el texto. Si no, usa el original.
+                const tipoReunionTexto = mapaTipos[pdfData.acta.tipo_reunion] || pdfData.acta.tipo_reunion || 'N/A';
 
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-                const pageHeight = doc.internal.pageSize.height;
-                const pageWidth = doc.internal.pageSize.width;
+                const doc = new jsPDF();
+                const colorPrincipal = [44, 62, 80]; 
+                const colorSecundario = [255, 115, 0];
 
-                // --- 2. Encabezado ---
+                // 1. Encabezado
                 doc.autoTable({
                     startY: 10,
                     body: [[
-                        { content: '', styles: { cellWidth: 50 } },
-                        { content: 'ACTA DE REUNIÓN', styles: { cellWidth: 'auto', halign: 'center', fontStyle: 'bold', fontSize: 16, valign: 'middle' } },
-                        { content: `Código: ${pdfData.acta.codigo}\nVersión: 1.0\nAprobado: Gerencia`, styles: { cellWidth: 50, halign: 'right', fontSize: 9, valign: 'middle' } }
+                        { content: '', styles: { cellWidth: 40 } },
+                        { content: 'ACTA DE REUNIÓN', styles: { halign: 'center', fontSize: 16, fontStyle: 'bold', valign: 'middle' } },
+                        { content: `Código: ${pdfData.acta.codigo}\nVersión: 1.0\nAprobado: Gerencia`, styles: { halign: 'right', fontSize: 8 } }
                     ]],
                     theme: 'plain',
                     didDrawCell: function(data) {
-                        if (data.section === 'body' && data.column.index === 0) {
-                            doc.addImage(logoBase64, 'PNG', data.cell.x, data.cell.y, 45, 18);
+                        if (data.section === 'body' && data.column.index === 0 && logoBase64) {
+                            doc.addImage(logoBase64, 'PNG', data.cell.x + 2, data.cell.y + 2, 35, 12);
                         }
                     }
                 });
 
-                // --- 3. Información General ---
-                const infoBody = [
-                    [`Tema principal:${pdfData.acta.tema || ''}`, `Tipo de reunión: ${pdfData.acta.tipo_reunion || 'N/A'}`],
-                    [`Fecha: ${new Date(pdfData.acta.fecha).toLocaleDateString('es-CO')}`, `Lugar: ${pdfData.acta.lugar || ''}`],
-                    [`Hora inicio: ${pdfData.acta.horaInicio || ''}`, `Hora Fin: ${pdfData.acta.horaFin || 'N/A'}`],
-                    [{ content: `Número de Asistentes: ${pdfData.acta.cantidad_asistentes}`, colSpan: 2 }]
-                ];
+                // 2. Información General (USANDO EL TEXTO TRADUCIDO)
                 doc.autoTable({
                     startY: doc.lastAutoTable.finalY + 5,
-                    head: [[{ content: '1. Información General', colSpan: 2, styles: { fontStyle: 'bold', fillColor: colorPrincipal, textColor: 255 } }]],
-                    body: infoBody,
-                    theme: 'grid'
-                });
-
-                // --- 4. Desarrollo del Temario ---
-                const desarrolloBody = pdfData.contenido.map((item, index) => [ index + 1, item.temario_code, item.intervenciones || 'Sin intervención registrada.']);
-                doc.autoTable({
-                    startY: doc.lastAutoTable.finalY + 10,
-                    head: [
-                        [{ content: '2. Desarrollo', colSpan: 3, styles: { fontStyle: 'bold', fillColor: colorPrincipal, textColor: 255 } }],
-                        [
-                            { content: 'N°', styles: { fillColor: colorSecundario, textColor: 255 } },
-                            { content: 'Temario', styles: { fillColor: colorSecundario, textColor: 255 } },
-                            { content: 'Intervenciones', styles: { fillColor: colorSecundario, textColor: 255 } }
-                        ]
+                    head: [[{ content: '1. Información General', colSpan: 2, styles: { fillColor: colorPrincipal, textColor: 255, fontStyle: 'bold' } }]],
+                    body: [
+                        [`Tema: ${pdfData.acta.tema}`, `Tipo: ${tipoReunionTexto}`],
+                        [`Lugar: ${pdfData.acta.lugar}`, `Fecha: ${new Date(pdfData.acta.fecha).toLocaleDateString('es-CO')}`],
+                        [`Hora Inicio: ${pdfData.acta.horaInicio}`, `Hora Fin: ${pdfData.acta.horaFin}`],
+                        [{ content: `Asistentes: ${pdfData.acta.cantidad_asistentes}`, colSpan: 2 }]
                     ],
-                    body: desarrolloBody,
                     theme: 'grid'
                 });
 
-                // --- 5. Compromisos ---
-                const compromisosBody = pdfData.contenido
-                    .filter(item => item.compromisos && item.compromisos.trim() !== '')
-                    .map(item => {
-                        const match = item.compromisos.match(/\[Responsable:\s*(.*?)\s*\|\s*Fecha:\s*(.*?)\]/);
-                        const detalle = item.compromisos.replace(/\[Responsable:.*\]/g, '').replace(/\d+\.\s/g, '').trim();
-                        const responsable = match ? match[1] : 'No definido';
-                        const fecha = match ? match[2] : 'No definida';
-                        return [item.temario_code, detalle, responsable, fecha];
+                // 3. Desarrollo
+                const desarrolloData = pdfData.contenido.map((item, i) => [
+                    i + 1, 
+                    item.temario_code || 'Sin tema', 
+                    item.intervenciones || 'Sin observaciones'
+                ]);
+                
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 5,
+                    head: [
+                        [{ content: '2. Desarrollo', colSpan: 3, styles: { fillColor: colorPrincipal, textColor: 255, fontStyle: 'bold' } }],
+                        ['#', 'Temario', 'Intervenciones']
+                    ],
+                    body: desarrolloData.length ? desarrolloData : [['-', '-', 'Sin contenido registrado']],
+                    theme: 'grid',
+                    headStyles: { fillColor: colorSecundario }
+                });
+
+                // 4. Compromisos
+                const compromisosData = pdfData.contenido
+                    .filter(c => c.compromisos && c.compromisos.trim())
+                    .map(c => {
+                        const texto = c.compromisos;
+                        const respMatch = texto.match(/Responsable:\s*(.*?)\s*\|/);
+                        const fechaMatch = texto.match(/Fecha:\s*(.*?)]/);
+                        const detalle = texto.replace(/\[.*?\]/, '').replace(/^\d+\.\s/, '').trim(); // Limpia números iniciales
+                        
+                        return [
+                            c.temario_code,
+                            detalle,
+                            respMatch ? respMatch[1] : 'S/N',
+                            fechaMatch ? fechaMatch[1] : 'S/N'
+                        ];
                     });
 
-                if (compromisosBody.length > 0) {
+                if (compromisosData.length > 0) {
                     doc.autoTable({
-                        startY: doc.lastAutoTable.finalY + 10,
+                        startY: doc.lastAutoTable.finalY + 5,
                         head: [
-                            [{ content: '3. Compromisos', colSpan: 4, styles: { fontStyle: 'bold', fillColor: colorPrincipal, textColor: 255 } }],
-                            [
-                                { content: 'Temario', styles: { fillColor: colorSecundario, textColor: 255 } },
-                                { content: 'Detalle', styles: { fillColor: colorSecundario, textColor: 255 } },
-                                { content: 'Responsable', styles: { fillColor: colorSecundario, textColor: 255 } },
-                                { content: 'Fecha', styles: { fillColor: colorSecundario, textColor: 255 } }
-                            ]
+                            [{ content: '3. Compromisos', colSpan: 4, styles: { fillColor: colorPrincipal, textColor: 255, fontStyle: 'bold' } }],
+                            ['Tema', 'Compromiso', 'Responsable', 'Fecha']
                         ],
-                        body: compromisosBody,
+                        body: compromisosData,
                         theme: 'grid',
-                        columnStyles: {
-                            0: { cellWidth: 50 },
-                            1: { cellWidth: 'auto' },
-                            2: { cellWidth: 35 },
-                            3: { cellWidth: 25 }
-                        }
+                        headStyles: { fillColor: colorSecundario }
                     });
                 }
-                
-                // --- 6. Listado de Asistencia (Firmas) ---
+
+                // 5. Firmas (PROTEGIDO)
                 if (pdfData.firmas && pdfData.firmas.length > 0) {
-                    const firmasBody = pdfData.firmas.map(f => [`${f.nombre} ${f.apellidos}`, f.cargo, f.empresa, '']);
+                    const firmasData = pdfData.firmas.map(f => [
+                        `${f.nombre} ${f.apellidos}`,
+                        f.cargo || '',
+                        f.empresa || '',
+                        '' 
+                    ]);
+
                     doc.autoTable({
                         startY: doc.lastAutoTable.finalY + 10,
                         head: [
-                            [{ content: '4. Listado de Asistencia', colSpan: 4, styles: { fontStyle: 'bold', fillColor: colorPrincipal, textColor: 255 } }], 
-                            [
-                                { content:'Nombre Completo', styles: { fillColor: colorSecundario, textColor: 255 } }, 
-                                { content: 'Cargo', styles: { fillColor: colorSecundario, textColor: 255 } }, 
-                                { content: 'Empresa', styles: { fillColor: colorSecundario, textColor: 255 } }, 
-                                { content: 'Firma', styles: { fillColor: colorSecundario, textColor: 255 } }
-                            ]
+                            [{ content: '4. Listado de Asistencia', colSpan: 4, styles: { fillColor: colorPrincipal, textColor: 255, fontStyle: 'bold' } }],
+                            ['Nombre', 'Cargo', 'Empresa', 'Firma']
                         ],
-                        body: firmasBody,
+                        body: firmasData,
                         theme: 'grid',
-                        columnStyles: {
-                            0: { cellWidth: 'auto' }, 
-                            1: { cellWidth: 35 }, 
-                            2: { cellWidth: 40 }, 
-                            3: { cellWidth: 50, minCellHeight: 20 } 
-                        },
+                        headStyles: { fillColor: colorSecundario },
+                        columnStyles: { 3: { cellWidth: 40, minCellHeight: 20 } },
+                        
                         didDrawCell: function(data) {
-                            if (data.column.index === 3 && data.cell.section === 'body') {
-                                const firmaBase64 = pdfData.firmas[data.row.index].firma;
-                                if (firmaBase64) {
-                                    const cellWidth = data.cell.width;
-                                    const cellHeight = data.cell.height;
-                                    const padding = 4;
-                                    const availableWidth = cellWidth - padding;
-                                    const availableHeight = cellHeight - padding;
-                                    const imgProps = doc.getImageProperties(firmaBase64);
-                                    const aspectRatio = imgProps.width / imgProps.height;
-                                    let newWidth = availableWidth;
-                                    let newHeight = newWidth / aspectRatio;
-                                    if (newHeight > availableHeight) {
-                                        newHeight = availableHeight;
-                                        newWidth = newHeight * aspectRatio;
+                            if (data.section === 'body' && data.column.index === 3) {
+                                const firmante = pdfData.firmas[data.row.index];
+                                if (firmante && firmante.firma) {
+                                    try {
+                                        const imgProps = doc.getImageProperties(firmante.firma);
+                                        const imgWidth = data.cell.width - 4;
+                                        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+                                        const yPos = data.cell.y + (data.cell.height - imgHeight) / 2;
+                                        doc.addImage(firmante.firma, 'PNG', data.cell.x + 2, yPos, imgWidth, imgHeight);
+                                    } catch (e) {
+                                        console.warn('Firma inválida');
                                     }
-                                    const x = data.cell.x + (cellWidth - newWidth) / 2;
-                                    const y = data.cell.y + (cellHeight - newHeight) / 2;
-                                    doc.addImage(firmaBase64, 'PNG', x, y, newWidth, newHeight);
                                 }
                             }
                         }
                     });
                 }
-                
-                // --- 7. Paginación ---
-                const pageCount = doc.internal.getNumberOfPages();
-                for(let i = 1; i <= pageCount; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(8);
-                    doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-                }
 
-                // --- 8. Guardar PDF ---
-                doc.save(`Acta-${data.codigo}.pdf`);
+                doc.save(`Acta_${pdfData.acta.codigo}.pdf`);
 
             } catch (error) {
-                console.error('Error al generar PDF:', error);
-                window.mostrarNotificacion(error.message, 'danger');
+                console.error("Error PDF:", error);
+                window.mostrarNotificacion("Error al generar el PDF: " + error.message, 'danger');
             } finally {
-                boton.prop('disabled', false).html('<i class="fas fa-file-pdf"></i>');
+                boton.prop('disabled', false).html(iconoOriginal);
             }
         }
     });

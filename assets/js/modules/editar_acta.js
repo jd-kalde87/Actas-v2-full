@@ -13,18 +13,18 @@ window.inicializarVista = function(actaCodigo) {
 
     // Función para cargar los datos del acta en el formulario
     function inicializarEdicion() {
-        // --- MODIFICACIÓN 1: Se reemplaza fetch por apiFetch ---
-        // Esto asegura que la petición esté protegida contra sesiones expiradas.
+        // Usamos apiFetch para proteger la petición
         apiFetch(`actas/obtener/${actaCodigo}`)
             .then(data => {
-                // Rellenar el formulario con los datos recibidos
+                // Rellenar el formulario
                 $('#tema-editar').val(data.tema);
                 $('#lugar-editar').val(data.lugar);
-                $('#fecha-editar').val(data.fecha);
+                $('#fecha-editar').val(data.fecha); // Asegúrate que el input type="date" reciba YYYY-MM-DD
                 $('#HoraI-editar').val(data.horaInicio);
                 $('#HoraF-editar').val(data.horaFin);
                 $('#asistentes-editar').val(data.cantidad_asistentes);
 
+                // Configuración del select de tipo de reunión
                 const tipoSelect = $('#tiporeunion-editar');
                 tipoSelect.html(`<option value="1">Comite mensual</option><option value="2">Verificacion en campo</option><option value="10">Otros</option>`);
                 tipoSelect.val(data.tipo_reunion);
@@ -32,12 +32,31 @@ window.inicializarVista = function(actaCodigo) {
                 const contenedorTemarios = $('#contenedor-temarios-editar');
                 contenedorTemarios.html('');
                 
-                // Aseguramos que el temario (que es un string) se convierta en array
+                // --- CORRECCIÓN CRÍTICA: DETECCIÓN INTELIGENTE DE SEPARADOR ---
                 if (data.temario && typeof data.temario === 'string') {
-                    const temarioItems = data.temario.split(',');
+                    let temarioItems = [];
+                    
+                    // Si contiene el nuevo separador '||', lo usamos. Si no, usamos la coma (compatibilidad actas viejas)
+                    if (data.temario.includes('||')) {
+                        temarioItems = data.temario.split('||');
+                    } else {
+                        temarioItems = data.temario.split(',');
+                    }
+
                     temarioItems.forEach(item => {
-                        const nuevoTemario = `<div class="input-group mb-2"><span class="input-group-text"></span><input type="text" class="form-control" name="temario-editar[]" value="${item.trim()}" required><button type="button" class="btn btn-outline-danger btn-remover-temario-editar"><i class="fas fa-times"></i></button></div>`;
-                        contenedorTemarios.append(nuevoTemario);
+                        // Limpiamos espacios en blanco extra
+                        const valorLimpio = item.trim();
+                        if(valorLimpio) {
+                            const nuevoTemario = `
+                                <div class="input-group mb-2">
+                                    <span class="input-group-text"></span>
+                                    <input type="text" class="form-control" name="temario-editar[]" value="${valorLimpio}" required>
+                                    <button type="button" class="btn btn-outline-danger btn-remover-temario-editar">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>`;
+                            contenedorTemarios.append(nuevoTemario);
+                        }
                     });
                 }
                 renumerarTemariosEditar();
@@ -48,45 +67,46 @@ window.inicializarVista = function(actaCodigo) {
             });
     }
 
-    // Listener para el botón "Agregar Temario" (sin cambios)
-    mainContent.on('click', '#btn-agregar-temario-editar', function() {
+    // Botón "Agregar Temario"
+    mainContent.off('click', '#btn-agregar-temario-editar').on('click', '#btn-agregar-temario-editar', function() {
         const nuevoTemario = `<div class="input-group mb-2"><span class="input-group-text"></span><input type="text" class="form-control" name="temario-editar[]" placeholder="Nuevo punto" required><button type="button" class="btn btn-outline-danger btn-remover-temario-editar"><i class="fas fa-times"></i></button></div>`;
         $('#contenedor-temarios-editar').append(nuevoTemario);
         renumerarTemariosEditar();
     });
 
-    // Listener para el botón "Remover Temario" (sin cambios)
-    mainContent.on('click', '.btn-remover-temario-editar', function() {
+    // Botón "Remover Temario"
+    mainContent.off('click', '.btn-remover-temario-editar').on('click', '.btn-remover-temario-editar', function() {
         $(this).closest('.input-group').remove();
         renumerarTemariosEditar();
     });
 
-    // Listener para el botón "Actualizar Acta"
-    mainContent.on('click', '#btn-actualizar-acta', function() {
+    // Botón "Actualizar Acta"
+    mainContent.off('click', '#btn-actualizar-acta').on('click', '#btn-actualizar-acta', function() {
         const actaCodigo = $('#form-editar-acta').data('acta-codigo');
         const temarios = [];
         $('input[name="temario-editar[]"]').each(function() { temarios.push($(this).val()); });
 
         const data = {
-            tema: $('#tema-editar').val(), lugar: $('#lugar-editar').val(), fecha: $('#fecha-editar').val(),
-            horaInicio: $('#HoraI-editar').val(), horaFin: $('#HoraF-editar').val(), cantidad_asistentes: $('#asistentes-editar').val(),
-            tipo_reunion: $('#tiporeunion-editar').val(), temario: temarios
+            tema: $('#tema-editar').val(),
+            lugar: $('#lugar-editar').val(),
+            fecha: $('#fecha-editar').val(),
+            horaInicio: $('#HoraI-editar').val(),
+            horaFin: $('#HoraF-editar').val(),
+            cantidad_asistentes: $('#asistentes-editar').val(),
+            tipo_reunion: $('#tiporeunion-editar').val(),
+            temario: temarios // Se envía como Array, el backend lo convertirá a String con ||
         };
 
-        // --- MODIFICACIÓN 2: Se reemplaza fetch por apiFetch y se usa sessionStorage ---
         apiFetch(`actas/actualizar/${actaCodigo}`, {
             method: 'PATCH',
             body: JSON.stringify(data)
         })
         .then((response) => {
-            // Guardamos la notificación para que se muestre en la siguiente pantalla
             const notificacion = { 
                 mensaje: response.message || 'Acta actualizada exitosamente.', 
                 tipo: 'success' 
             };
             sessionStorage.setItem('notificacionPendiente', JSON.stringify(notificacion));
-            
-            // Redirigimos a la lista de actas
             window.cargarVista('lista_actas');
         })
         .catch(error => { 
@@ -95,13 +115,5 @@ window.inicializarVista = function(actaCodigo) {
         });
     });
 
-    // Carga inicial de los datos del acta
     inicializarEdicion();
-
-    // Limpieza de eventos al salir de la vista
-    mainContent.on('remove', function() {
-        mainContent.off('click', '#btn-agregar-temario-editar');
-        mainContent.off('click', '.btn-remover-temario-editar');
-        mainContent.off('click', '#btn-actualizar-acta');
-    });
 };

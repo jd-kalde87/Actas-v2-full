@@ -1,147 +1,134 @@
-/* Definición de Colores Institucionales */
+/* ========================================= */
+/* === DEFINICIÓN DE COLORES CORPORATIVOS === */
+/* ========================================= */
 :root {
-    --color-azul-principal: #0F2027;
-    --color-naranja-acento: #F37321;
-    --color-gris-secundario: #2C3E50;
-    --color-verde-succes: #279927;
+    --color-azul-principal: #0F2027;  /* Fondo Sidebar */
+    --color-azul-oscuro: #203A43;     /* Gradiente Sidebar */
+    --color-naranja-acento: #F37321;  /* Color Institucional */
+    --color-gris-texto: #2C3E50;
     --color-blanco: #FFFFFF;
+    --shadow-suave: 0 4px 6px rgba(0,0,0,0.1);
 }
+
 /* =================================== */
-/* === PERSONALIZACIÓN DE PLANTILLA === */
+/* === MEJORAS GENERALES UI/UX === */
 /* =================================== */
 
+body {
+    font-family: 'Source Sans Pro', sans-serif;
+    background-color: #f4f6f9;
+}
 
-/* Estilos específicos para la imagen en el login */
-.logo-img{
+/* Sombra suave para la barra de navegación superior */
+.main-header {
+    border-bottom: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,.08) !important;
+}
+
+/* --- SIDEBAR (Barra Lateral) --- */
+.main-sidebar {
+    background: linear-gradient(180deg, var(--color-azul-principal) 0%, var(--color-azul-oscuro) 100%);
+    box-shadow: 4px 0 10px rgba(0,0,0,0.2) !important;
+}
+
+.brand-link {
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+/* Icono Genérico de Usuario (Reemplazo de imagen) */
+.user-icon-wrapper {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 1.4rem;
+    transition: all 0.3s ease;
+}
+
+.user-panel:hover .user-icon-wrapper {
+    background-color: var(--color-naranja-acento);
+    transform: scale(1.1);
+}
+
+/* Enlaces del Sidebar */
+.nav-sidebar .nav-item .nav-link {
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+/* Estado Activo en Sidebar */
+.nav-sidebar .nav-link.active {
+    background-color: var(--color-naranja-acento) !important;
+    color: white !important;
+    box-shadow: 0 4px 6px rgba(243, 115, 33, 0.4);
+    font-weight: bold;
+}
+
+.nav-sidebar .nav-link:hover:not(.active) {
+    background-color: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+/* Encabezados de sección en Sidebar */
+.nav-header {
+    color: #aeb9bf !important;
+    padding-left: 1rem;
+}
+
+/* --- TARJETAS Y CONTENIDO --- */
+.card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: var(--shadow-suave);
+    transition: transform 0.2s;
+}
+
+/* Efecto hover sutil en tarjetas del dashboard */
+.small-box:hover, .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+/* Botones Primarios */
+.btn-primary {
+    background-color: var(--color-gris-texto);
+    border-color: var(--color-gris-texto);
+    box-shadow: 0 2px 4px rgba(44, 62, 80, 0.3);
+}
+
+.btn-primary:hover {
+    background-color: #1a2531;
+    border-color: #1a2531;
+}
+
+/* =================================== */
+/* === PÁGINA DE LOGIN Y EXTRAS === */
+/* =================================== */
+.logo-img {
     max-width: 100%;
     height: auto;
     margin-bottom: 1.5rem;
     display: block;
-    transition: transform 0.3s ease; /* hace suave la transición */
-
+    transition: transform 0.3s ease;
+}
+.logo-img:hover {
+    transform: scale(1.05);
+    cursor: pointer;
 }
 
-.logo-img:hover{
-    transform: scale(1.1); /* agranda la imagen un 10% */
-    cursor: pointer; /* cambia el cursor a puntero */
-}
-#pie_login {
-    text-align: center;
-    margin-top: 1.875rem;
-}
-
-/* --- Estilos para la página de firma (firmar_acta.php) --- */
-
-/* Estilo general para el fondo de la página de firma */
-body.firma-page {
-  background-color: #f4f6f9;
-}
-
-/* Estilo para el recuadro donde se dibuja la firma */
+/* Estilos de Firma */
 .signature-pad {
-  border: 2px dashed #ccc;
-  border-radius: 5px;
-  cursor: crosshair;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    background-color: #fff;
 }
-
-/* Contenedor para centrar el bloque de la firma */
 .signature-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
-/* Párrafo de confirmación debajo del cuadro de la firma */
-.signature-confirmation-text {
-  text-align: center;
-  margin-top: 1.5rem;
-  max-width: 500px;
-}
-
-
-/* Cambiar el color de fondo de la barra lateral */
-.sidebar-dark-primary {
-    background-color: var(--color-azul-principal) !important;
-}
-
-/* Cambiar el color del enlace activo y al pasar el mouse en la barra lateral */
-.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active,
-.sidebar-light-primary .nav-sidebar > .nav-item > .nav-link.active {
-    background-color: var(--color-naranja-acento) !important;
-    color: var(--color-blanco) !important;
-}
-
-/* Cambiar el color de los botones primarios */
-.btn-primary {
-    background-color: var(--color-gris-secundario);
-    border-color: var(--color-gris-secundario);
-}
-
-.btn-primary:hover {
-    background-color: #1a2531; /* Un tono más oscuro de gris para el hover */
-    border-color: #1a2531;
-}
-
-/* Cambiar el color de los bordes de las tarjetas primarias */
-.card-primary.card-outline {
-    border-top: 3px solid var(--color-gris-secundario);
-}
-/* Pega esto en tu archivo CSS o dentro de una etiqueta <style> en asistencia.php */
-
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1050;
-}
-
-.modal-content {
-    background: white;
-    padding: 20px;
-    border-radius: 5px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 5px 15px rgba(0,0,0,.5);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #dee2e6;
-    padding-bottom: 10px;
-    color: #dc3545; /* Rojo para el título del error */
-}
-
-.modal-close {
-    cursor: pointer;
-    font-size: 1.5rem;
-    font-weight: bold;
-}
-
-.modal-body {
-    padding-top: 15px;
-    padding-bottom: 15px;
-}
-
-.modal-footer {
-    text-align: right;
-    border-top: 1px solid #dee2e6;
-    padding-top: 10px;
-}
-
-.btn-modal {
-    padding: 8px 15px;
-    border: none;
-    background-color: #6c757d;
-    color: white;
-    border-radius: 4px;
-    cursor: pointer;
 }

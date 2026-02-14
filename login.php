@@ -8,31 +8,47 @@ if (isset($_SESSION['token'])) {
 }
 
 $error_message = '';
+$debug_message = ''; // Variable para ver errores ocultos
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['cedula']) && isset($_POST['contrasena'])) {
         $datos = ['cedula' => $_POST['cedula'], 'contrasena' => $_POST['contrasena']];
         
-        // La URL apunta a nuestro nuevo backend
-        $ch = curl_init(BACKEND_API_URL . 'usuario/login');
+        // --- CORRECCIÓN 1: Aseguramos que la URL tenga la barra '/' ---
+        // Usamos rtrim para quitar barras extras si las hubiera, y agregamos la nuestra.
+        $url = rtrim(BACKEND_API_URL, '/') . '/usuario/login';
+
+        $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($datos));
         
         $response = curl_exec($ch);
+        
+        // --- CORRECCIÓN 2: Capturar errores de conexión (Debug) ---
+        if ($response === false) {
+            $debug_message = 'Error de conexión cURL: ' . curl_error($ch);
+        }
+        
         curl_close($ch);
         
         $response_data = json_decode($response, true);
 
-        // Lógica corregida para aceptar 'true' o '1' como valor de admin
+        // Verificamos si el login fue exitoso
         if (isset($response_data['token']) && isset($response_data['admin']) && $response_data['admin']) {
             $_SESSION['token'] = $response_data['token'];
             $_SESSION['user_nombre'] = $response_data['nombre'];
+            $_SESSION['user_admin'] = $response_data['admin']; // Guardamos el rol por si acaso
             header("Location: ./index.php");
             exit();
         } else {
-            // Mensaje de error genérico para mayor seguridad
-            $error_message = 'Credenciales incorrectas o sin permiso de administrador.';
+            // Si el backend nos respondió un mensaje de error, lo mostramos
+            if(isset($response_data['message'])) {
+                $error_message = $response_data['message'];
+            } else {
+                $error_message = 'Credenciales incorrectas o sin permiso de administrador.';
+            }
         }
     }
 }
@@ -43,7 +59,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>VOSIN S.A.S | Iniciar Sesión</title>
-    <link rel="icon" href="./assets/img/Logo.png" type="image/x-icon">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <link rel="stylesheet" href="libs/admin-lte/plugins/fontawesome-free/css/all.min.css">
     <link rel="stylesheet" href="libs/admin-lte/dist/css/adminlte.min.css">
@@ -63,6 +78,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <?php if ($error_message): ?>
                 <div class="alert alert-danger text-center">
                     <?php echo htmlspecialchars($error_message); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($debug_message): ?>
+                <div class="alert alert-warning text-center" style="font-size: 12px;">
+                    <strong>Debug:</strong> <?php echo htmlspecialchars($debug_message); ?>
                 </div>
             <?php endif; ?>
 

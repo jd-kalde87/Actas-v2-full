@@ -4,35 +4,38 @@ window.inicializarVista = function(actaCodigo) {
     
     // Referencias a elementos del DOM
     const mainContent = $('#main-content');
-    const form = $('#form-contenido-acta');
-
+    
     /**
-     * Carga y muestra el contenido ya existente para el acta actual desde el backend.
-     * Utiliza la función apiFetch para una comunicación segura y manejo de sesión.
+     * Carga y muestra el contenido ya existente para el acta actual.
      */
     function cargarContenidoExistente() {
         const contenidoContainer = $('#contenido-existente-container');
         
         apiFetch(`contenido-actas/obtener/${actaCodigo}`)
             .then(data => {
-                contenidoContainer.html(''); // Limpia el contenedor antes de añadir nuevo contenido
+                contenidoContainer.html(''); 
                 if (data && data.length > 0) {
                     data.forEach(item => {
-                        // Lógica para parsear y mostrar los compromisos en una tabla HTML
                         let compromisosHtml = '<p class="text-muted small">No hay compromisos.</p>';
+                        
+                        // Renderizado de compromisos (sin cambios)
                         if (item.compromisos && item.compromisos.trim() !== '') {
                             compromisosHtml = '<table class="table table-sm table-bordered" style="font-size: 0.9em;"><thead><tr><th>Compromiso</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody>';
-                            const lineas = item.compromisos.trim().split(/\n/);
+                            // Normalizamos saltos de línea por si acaso
+                            const lineas = item.compromisos.trim().split(/\r?\n/);
                             lineas.forEach(linea => {
-                                const match = linea.match(/(.*)\[Responsable:\s(.*)\s\|\sFecha:\s(.*)\]/);
+                                // Regex ajustada para ser más flexible con espacios
+                                const match = linea.match(/(.*?)\[Responsable:\s*(.*?)\s*\|\s*Fecha:\s*(.*?)\]/);
                                 if (match) {
                                     compromisosHtml += `<tr><td>${match[1].replace(/^\d+\.\s/, '').trim()}</td><td>${match[2].trim()}</td><td>${match[3].trim()}</td></tr>`;
+                                } else {
+                                    // Si no hace match exacto, mostramos la línea tal cual para no perder info
+                                    compromisosHtml += `<tr><td colspan="3">${linea}</td></tr>`;
                                 }
                             });
                             compromisosHtml += '</tbody></table>';
                         }
 
-                        // Construye el bloque HTML para cada item de contenido
                         const contenidoHtml = `
                             <div class="callout callout-info" data-item-id="${item.id}">
                                 <div class="float-right">
@@ -45,8 +48,9 @@ window.inicializarVista = function(actaCodigo) {
                                 <strong>Compromisos:</strong>
                                 ${compromisosHtml} 
                             </div>`;
+                        
                         const elemento = $(contenidoHtml);
-                        elemento.data('itemData', item); // Almacena los datos del item en el elemento del DOM
+                        elemento.data('itemData', item);
                         contenidoContainer.append(elemento);
                     });
                 } else {
@@ -60,17 +64,39 @@ window.inicializarVista = function(actaCodigo) {
     }
 
     /**
-     * Carga los puntos del temario del acta en el menú desplegable del formulario.
+     * Carga los puntos del temario del acta en el menú desplegable.
+     * CORRECCIÓN: Ahora soporta el separador '||'
      */
     function cargarTemario() {
         apiFetch(`actas/obtener/${actaCodigo}`)
             .then(data => {
                 const temarioSelect = $('#temario-select');
                 temarioSelect.html('<option value="" selected disabled>Seleccione un punto...</option>');
+                
                 if (data && data.temario) {
-                    const temarioItems = Array.isArray(data.temario) ? data.temario : data.temario.split(',');
+                    let temarioItems = [];
+
+                    // 1. Si ya es un array, úsalo directo
+                    if (Array.isArray(data.temario)) {
+                        temarioItems = data.temario;
+                    } 
+                    // 2. Si es texto, verifica qué separador usa
+                    else if (typeof data.temario === 'string') {
+                        if (data.temario.includes('||')) {
+                            // Nuevo formato
+                            temarioItems = data.temario.split('||');
+                        } else {
+                            // Formato antiguo (retrocompatibilidad)
+                            temarioItems = data.temario.split(',');
+                        }
+                    }
+
+                    // 3. Crear las opciones en el Select
                     temarioItems.forEach(item => {
-                        temarioSelect.append(`<option value="${item.trim()}">${item.trim()}</option>`);
+                        const valorLimpio = item.trim();
+                        if (valorLimpio) { // Solo agregar si no está vacío
+                            temarioSelect.append(`<option value="${valorLimpio}">${valorLimpio}</option>`);
+                        }
                     });
                 }
             })
@@ -81,17 +107,14 @@ window.inicializarVista = function(actaCodigo) {
     }
 
     // ===================================================================
-    //  MANEJO DE EVENTOS (Listeners para los botones y formularios)
+    //  MANEJO DE EVENTOS
     // ===================================================================
 
-    /**
-     * Evento para agregar un nuevo bloque de formulario para un compromiso.
-     */
+    // Agregar campo de compromiso dinámico
     mainContent.off('click', '#btn-agregar-compromiso').on('click', '#btn-agregar-compromiso', function() {
-        // --- CÓDIGO HTML RESTAURADO Y COMPLETO ---
         const nuevoCompromisoHtml = `
-            <div class="compromiso-item border rounded p-2 mb-2">
-                <div class="form-group">
+            <div class="compromiso-item border rounded p-2 mb-2 bg-light">
+                <div class="form-group mb-2">
                     <textarea class="form-control compromiso-descripcion" rows="2" placeholder="Descripción del compromiso..." required></textarea>
                 </div>
                 <div class="row">
@@ -102,49 +125,72 @@ window.inicializarVista = function(actaCodigo) {
                         <input type="date" class="form-control compromiso-fecha">
                     </div>
                 </div>
-                <div class="row mt-1">
+                <div class="row mt-2">
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input compromiso-sin-responsable" type="checkbox">
-                            <label class="form-check-label small">Sin Responsable</label>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input compromiso-sin-responsable" id="checkResp${Date.now()}">
+                            <label class="custom-control-label small" for="checkResp${Date.now()}">Sin Responsable</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input compromiso-sin-fecha" type="checkbox">
-                            <label class="form-check-label small">Sin Fecha</label>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input compromiso-sin-fecha" id="checkFecha${Date.now()}">
+                            <label class="custom-control-label small" for="checkFecha${Date.now()}">Sin Fecha</label>
                         </div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-xs btn-danger mt-2 btn-remover-compromiso">Eliminar</button>
+                <button type="button" class="btn btn-xs btn-outline-danger mt-2 btn-remover-compromiso" style="width:100%">Eliminar Compromiso</button>
             </div>`;
         $('#contenedor-compromisos').append(nuevoCompromisoHtml);
     });
 
-    // --- Eventos para el formulario dinámico de compromisos (con corrección .off()) ---
-    mainContent.off('click', '.btn-remover-compromiso').on('click', '.btn-remover-compromiso', function() { $(this).closest('.compromiso-item').remove(); });
-    mainContent.off('change', '.compromiso-sin-responsable').on('change', '.compromiso-sin-responsable', function() { $(this).closest('.compromiso-item').find('.compromiso-responsable').prop('disabled', this.checked).val(''); });
-    mainContent.off('change', '.compromiso-sin-fecha').on('change', '.compromiso-sin-fecha', function() { $(this).closest('.compromiso-item').find('.compromiso-fecha').prop('disabled', this.checked).val(''); });
+    // Remover compromiso
+    mainContent.off('click', '.btn-remover-compromiso').on('click', '.btn-remover-compromiso', function() { 
+        $(this).closest('.compromiso-item').remove(); 
+    });
 
-    /**
-     * Evento para el botón principal de Guardar o Actualizar contenido.
-     */
+    // Checkbox "Sin Responsable"
+    mainContent.off('change', '.compromiso-sin-responsable').on('change', '.compromiso-sin-responsable', function() { 
+        $(this).closest('.compromiso-item').find('.compromiso-responsable').prop('disabled', this.checked).val(this.checked ? '' : ''); 
+    });
+
+    // Checkbox "Sin Fecha"
+    mainContent.off('change', '.compromiso-sin-fecha').on('change', '.compromiso-sin-fecha', function() { 
+        $(this).closest('.compromiso-item').find('.compromiso-fecha').prop('disabled', this.checked).val(this.checked ? '' : ''); 
+    });
+
+    // Botón Guardar / Actualizar
     mainContent.off('click', '#btn-guardar-contenido').on('click', '#btn-guardar-contenido', function() {
-        const editingId = $(this).data('editing-id');
+        const boton = $(this);
+        const editingId = boton.data('editing-id');
+        
         let endpoint = 'contenido-actas/crear';
-        let method = 'POST';
+        let method = 'POST'; // Por defecto crear
+        
+        // Validación básica
+        if ($('#temario-select').val() === null) {
+            window.mostrarNotificacion('Por favor selecciona un punto del temario.', 'warning');
+            return;
+        }
+
         if (editingId) {
             endpoint = `contenido-actas/actualizar/${editingId}`;
             method = 'PATCH';
         }
         
+        // Construir texto de compromisos
         let compromisosTexto = '';
         $('#contenedor-compromisos .compromiso-item').each(function(index) {
             const item = $(this);
             const descripcion = item.find('.compromiso-descripcion').val();
-            if (descripcion) {
-                const responsable = item.find('.compromiso-sin-responsable').is(':checked') ? 'N/A' : item.find('.compromiso-responsable').val() || 'N/A';
-                const fecha = item.find('.compromiso-sin-fecha').is(':checked') ? 'N/A' : item.find('.compromiso-fecha').val() || 'N/A';
+            
+            if (descripcion && descripcion.trim() !== '') {
+                const sinResp = item.find('.compromiso-sin-responsable').is(':checked');
+                const sinFecha = item.find('.compromiso-sin-fecha').is(':checked');
+                
+                const responsable = sinResp ? 'N/A' : (item.find('.compromiso-responsable').val() || 'N/A');
+                const fecha = sinFecha ? 'N/A' : (item.find('.compromiso-fecha').val() || 'N/A');
+                
                 compromisosTexto += `${index + 1}. ${descripcion} [Responsable: ${responsable} | Fecha: ${fecha}]\n`;
             }
         });
@@ -155,30 +201,31 @@ window.inicializarVista = function(actaCodigo) {
             intervenciones: $('#intervenciones').val(),
             compromisos: compromisosTexto.trim()
         };
-        if (editingId) {
-            delete dataToSend.acta_ID;
-        }
+
+        // Si es edición, no enviamos el ID del acta (ya está asociado)
+        if (editingId) delete dataToSend.acta_ID;
+
+        boton.prop('disabled', true);
 
         apiFetch(endpoint, {
             method: method,
             body: JSON.stringify(dataToSend)
         }).then(() => {
             const notificacion = { 
-                mensaje: editingId ? 'Contenido actualizado.' : 'Contenido añadido.', 
+                mensaje: editingId ? 'Contenido actualizado correctamente.' : 'Contenido añadido correctamente.', 
                 tipo: 'success' 
             };
             sessionStorage.setItem('notificacionPendiente', JSON.stringify(notificacion));
             window.cargarVista('gestionar_contenido', actaCodigo);
         }).catch(error => {
+            boton.prop('disabled', false);
             window.mostrarNotificacion(error.message, 'danger');
         });
     });
 
-    /**
-     * Evento para el botón de Eliminar un registro de contenido.
-     */
+    // Botón Eliminar Contenido
     mainContent.off('click', '.btn-eliminar-contenido').on('click', '.btn-eliminar-contenido', function() {
-        if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+        if (confirm('¿Estás seguro de que deseas eliminar este registro de contenido?')) {
             const itemId = $(this).closest('.callout').data('item-id');
             apiFetch(`contenido-actas/eliminar/${itemId}`, {
                 method: 'DELETE'
@@ -191,44 +238,72 @@ window.inicializarVista = function(actaCodigo) {
         }
     });
     
-    /**
-     * Evento para el botón de Editar, que puebla el formulario con datos existentes.
-     */
+    // Botón Editar Contenido (Cargar datos al formulario)
     mainContent.off('click', '.btn-editar-contenido').on('click', '.btn-editar-contenido', function() {
         const itemData = $(this).closest('.callout').data('itemData');
+        
+        // Llenar campos básicos
         $('#temario-select').val(itemData.temario_code);
         $('#intervenciones').val(itemData.intervenciones);
         
+        // Llenar compromisos
         const contenedorCompromisos = $('#contenedor-compromisos');
-        contenedorCompromisos.html('');
+        contenedorCompromisos.html(''); // Limpiar
+        
         if (itemData.compromisos && itemData.compromisos.trim() !== '') {
-            const lineas = itemData.compromisos.trim().split(/\n/);
+            const lineas = itemData.compromisos.trim().split(/\r?\n/);
             lineas.forEach(linea => {
-                const match = linea.match(/(.*)\[Responsable:\s(.*)\s\|\sFecha:\s(.*)\]/);
+                // Regex para extraer datos
+                const match = linea.match(/(.*?)\[Responsable:\s*(.*?)\s*\|\s*Fecha:\s*(.*?)\]/);
+                
                 if (match) {
+                    // Simular clic en "Agregar Compromiso" para crear la estructura
                     $('#btn-agregar-compromiso').click();
                     const nuevoItem = contenedorCompromisos.find('.compromiso-item:last');
-                    const descripcion = match[1].replace(/^\d+\.\s/, '').trim();
+                    
+                    const descripcion = match[1].replace(/^\d+\.\s/, '').trim(); // Quitar número inicial
                     const responsable = match[2].trim();
                     const fecha = match[3].trim();
+                    
                     nuevoItem.find('.compromiso-descripcion').val(descripcion);
-                    if (responsable !== 'N/A') nuevoItem.find('.compromiso-responsable').val(responsable);
-                    else nuevoItem.find('.compromiso-sin-responsable').prop('checked', true).trigger('change');
-                    if (fecha !== 'N/A') nuevoItem.find('.compromiso-fecha').val(fecha);
-                    else nuevoItem.find('.compromiso-sin-fecha').prop('checked', true).trigger('change');
+                    
+                    if (responsable !== 'N/A') {
+                        nuevoItem.find('.compromiso-responsable').val(responsable);
+                    } else {
+                        nuevoItem.find('.compromiso-sin-responsable').prop('checked', true).trigger('change');
+                    }
+                    
+                    if (fecha !== 'N/A') {
+                        nuevoItem.find('.compromiso-fecha').val(fecha);
+                    } else {
+                        nuevoItem.find('.compromiso-sin-fecha').prop('checked', true).trigger('change');
+                    }
                 }
             });
         }
-        $('#btn-guardar-contenido').html('<i class="fas fa-sync-alt"></i> Actualizar Contenido').data('editing-id', itemData.id);
-        window.mostrarNotificacion('Modo de edición activado.', 'info');
+        
+        // Cambiar estado del botón a "Actualizar"
+        $('#btn-guardar-contenido')
+            .removeClass('btn-success')
+            .addClass('btn-primary')
+            .html('<i class="fas fa-sync-alt"></i> Actualizar Contenido')
+            .data('editing-id', itemData.id);
+            
+        // Scroll hacia el formulario
+        $('html, body').animate({
+            scrollTop: $("#form-contenido-acta").offset().top - 100
+        }, 500);
+        
+        window.mostrarNotificacion('Modo de edición activado. Realiza tus cambios y pulsa Actualizar.', 'info');
     });
 
-    // --- INICIALIZACIÓN Y LIMPIEZA DE EVENTOS ---
+    // Inicialización
     cargarTemario();
     cargarContenidoExistente();
     
-    // Al salir de la vista, limpiamos todos los listeners de click para evitar duplicados.
+    // Limpieza al salir
     mainContent.on('remove', function() {
         mainContent.off('click');
+        mainContent.off('change');
     });
 };

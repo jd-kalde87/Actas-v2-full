@@ -3,8 +3,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Inicializando página de firma...");
     const mainContainer = document.getElementById('main-container');
+    
     if (!mainContainer) {
-        console.error("Error crítico: No se encontró el main-container. Asegúrate que el HTML es correcto.");
+        console.error("Error crítico: No se encontró el main-container.");
         return;
     }
     
@@ -22,156 +23,179 @@ document.addEventListener('DOMContentLoaded', function() {
         const payload = JSON.parse(atob(token.split('.')[1]));
         document.getElementById('user-name').textContent = payload.nombre || 'Usuario';
         document.getElementById('user-cedula').textContent = payload.cedula || 'N/A';
+        
+        cargarDatosActa(token, BACKEND_URL, ACTA_CODIGO);
     } catch (e) {
-        console.error("Error al decodificar el token:", e);
-        alert("El token de sesión no es válido. Por favor, intente ingresar de nuevo.");
-        return;
+        console.error("Error al decodificar token:", e);
+        alert("Sesión inválida.");
+        window.location.href = `asistencia.php?codigo=${ACTA_CODIGO}`;
     }
 
-    cargarDatosActa(token, BACKEND_URL, ACTA_CODIGO);
-
+    // Inicializar SignaturePad
     const canvas = document.getElementById('signature-pad');
-    const signaturePad = new SignaturePad(canvas);
-
-    document.getElementById('clear-signature').addEventListener('click', () => signaturePad.clear());
-
-    document.getElementById('save-signature').addEventListener('click', () => {
-        if (signaturePad.isEmpty()) {
-            return alert("Por favor, provea su firma.");
-        }
-        const signatureData = signaturePad.toDataURL('image/png');
+    if(canvas) {
+        const signaturePad = new SignaturePad(canvas);
         
-        // Deshabilitamos el botón para evitar múltiples clics
-        document.getElementById('save-signature').disabled = true;
-        document.getElementById('save-signature').textContent = 'Guardando...';
+        document.getElementById('clear-signature').addEventListener('click', () => signaturePad.clear());
 
-        enviarFirma(token, signatureData, BACKEND_URL, ACTA_CODIGO);
-    });
+        document.getElementById('save-signature').addEventListener('click', () => {
+            if (signaturePad.isEmpty()) {
+                return alert("Por favor, provea su firma antes de guardar.");
+            }
+            
+            const btnGuardar = document.getElementById('save-signature');
+            btnGuardar.disabled = true;
+            btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+            const signatureData = signaturePad.toDataURL('image/png');
+            enviarFirma(token, signatureData, BACKEND_URL, ACTA_CODIGO);
+        });
+    }
 });
 
 async function cargarDatosActa(token, backendUrl, actaCodigo) {
-    console.log("Iniciando carga de datos del acta...");
     const loadingSpinner = document.getElementById('loading-spinner');
+    const actaContent = document.getElementById('acta-content');
+    const firmaContainer = document.getElementById('firma-container');
+
     try {
-        console.log("Paso 1: Obteniendo encabezado desde:", `${backendUrl}actas/obtener/${actaCodigo}`);
-        const responseActa = await fetch(`${backendUrl}actas/obtener/${actaCodigo}`, {
+        // 1. Obtener encabezado
+        const respActa = await fetch(`${backendUrl}actas/obtener/${actaCodigo}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        console.log("Respuesta del encabezado:", responseActa.status, responseActa.statusText);
-        if (!responseActa.ok) throw new Error(`No se pudo obtener el encabezado del acta (código: ${responseActa.status})`);
-        const acta = await responseActa.json();
-        console.log("Datos del encabezado recibidos:", acta);
+        if (!respActa.ok) throw new Error('No se pudo cargar la información del acta.');
+        const acta = await respActa.json();
 
-        console.log("Paso 2: Obteniendo contenido desde:", `${backendUrl}contenido-actas/obtener/${actaCodigo}`);
+        // 2. Obtener contenido
         let contenido = [];
-        const responseContenido = await fetch(`${backendUrl}contenido-actas/obtener/${actaCodigo}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        console.log("Respuesta del contenido:", responseContenido.status, responseContenido.statusText);
-        if (responseContenido.ok) {
-            contenido = await responseContenido.json();
-        } else {
-            console.warn('No se encontró contenido para esta acta o hubo un error al cargarlo.');
+        try {
+            const respCont = await fetch(`${backendUrl}contenido-actas/obtener/${actaCodigo}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (respCont.ok) contenido = await respCont.json();
+        } catch (e) {
+            console.warn("Sin contenido detallado:", e);
         }
-        console.log("Datos del contenido recibidos:", contenido);
 
-        console.log("Paso 3: Renderizando acta...");
-        renderizarActa({ acta: acta, contenido: contenido });
+        // 3. Renderizar
+        renderizarActa(acta, contenido);
         
-        loadingSpinner.style.display = 'none';
-        document.getElementById('acta-content').style.display = 'block';
-        document.getElementById('firma-container').style.display = 'block';
-        console.log("Renderizado completo.");
+        if(loadingSpinner) loadingSpinner.style.display = 'none';
+        if(actaContent) actaContent.style.display = 'block';
+        if(firmaContainer) firmaContainer.style.display = 'block';
 
     } catch (error) {
-        console.error("Error final en cargarDatosActa:", error);
-        loadingSpinner.innerHTML = `<p class="text-danger font-weight-bold">Error al cargar el acta: ${error.message}</p><p class="text-muted">Revise la consola (F12) para más detalles.</p>`;
+        console.error("Error carga:", error);
+        if(loadingSpinner) loadingSpinner.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
     }
 }
 
-function renderizarActa(data) {
-    const acta = data.acta;
-    const contenido = Array.isArray(data.contenido) ? data.contenido : [];
+function renderizarActa(acta, contenido) {
     const container = document.getElementById('acta-content');
+    if(!container) return;
 
-    let html = `
-        <div class="acta-header">
-            <h4>${acta.tema || 'Sin Tema'}</h4>
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Lugar:</strong> ${acta.lugar || 'N/A'}</p>
-                    <p><strong>Fecha:</strong> ${acta.fecha || 'N/A'}</p>
-                </div>
-                <div class="col-md-6">
-                    <p><strong>Hora de Inicio:</strong> ${acta.horaInicio || 'N/A'}</p>
-                    <p><strong>Hora de Fin:</strong> ${acta.horaFin || 'N/A'}</p>
-                </div>
-            </div>
-        </div>
-        <hr>
-    `;
-
-    // --- INICIO DE LA CORRECCIÓN ---
+    // --- LOGICA DE TEMARIO CORREGIDA (Soporte para '||') ---
+    let temarioHtml = '';
     let temarioItems = [];
+
     if (acta.temario) {
-        if (typeof acta.temario === 'string') {
-            // Si es un texto, lo separamos por comas
-            temarioItems = acta.temario.split(',');
-        } else if (Array.isArray(acta.temario)) {
-            // Si ya es un arreglo, simplemente lo usamos
+        if (Array.isArray(acta.temario)) {
             temarioItems = acta.temario;
+        } else if (typeof acta.temario === 'string') {
+            // Detectamos si usa el nuevo separador o la coma antigua
+            if (acta.temario.includes('||')) {
+                temarioItems = acta.temario.split('||');
+            } else {
+                temarioItems = acta.temario.split(',');
+            }
         }
     }
 
     if (temarioItems.length > 0) {
-        html += `<h6><strong>Temario:</strong></h6><ol>`;
+        temarioHtml = `<div class="mb-3"><h6><strong>Temario:</strong></h6><ol>`;
         temarioItems.forEach(item => {
-            // Nos aseguramos de que item sea un string antes de usar .trim()
-            html += `<li>${String(item).trim()}</li>`;
+            const texto = String(item).trim();
+            if(texto) temarioHtml += `<li>${texto}</li>`;
         });
-        html += `</ol><hr>`;
+        temarioHtml += `</ol></div><hr>`;
     }
-    // --- FIN DE LA CORRECCIÓN ---
+    // -------------------------------------------------------
 
-    if (contenido.length > 0) {
+    // Construcción del HTML
+    let html = `
+        <div class="text-center mb-4">
+            <h4 class="font-weight-bold">${acta.tema || 'Sin Tema'}</h4>
+            <p class="text-muted mb-0">Código: ${acta.codigo}</p>
+        </div>
+        <div class="row mb-3" style="font-size: 0.95em;">
+            <div class="col-6">
+                <p class="mb-1"><strong>Fecha:</strong> ${acta.fecha || 'N/A'}</p>
+                <p class="mb-1"><strong>Lugar:</strong> ${acta.lugar || 'N/A'}</p>
+            </div>
+            <div class="col-6 text-right">
+                <p class="mb-1"><strong>Inicio:</strong> ${acta.horaInicio || 'N/A'}</p>
+                <p class="mb-1"><strong>Fin:</strong> ${acta.horaFin || 'N/A'}</p>
+            </div>
+        </div>
+        <hr>
+        ${temarioHtml}
+    `;
+
+    // Renderizado del contenido detallado
+    if (contenido && contenido.length > 0) {
+        html += '<h5 class="mt-4 mb-3">Desarrollo de la Reunión</h5>';
         contenido.forEach(item => {
+            // Parseo de compromisos
+            let compromisosHtml = '<p class="text-muted small ml-3"><i>No hay compromisos registrados.</i></p>';
+            if (item.compromisos && item.compromisos.trim()) {
+                compromisosHtml = '<ul class="list-group list-group-flush mb-2">';
+                const lineas = item.compromisos.split(/\r?\n/);
+                lineas.forEach(l => {
+                    // Intento de extraer info estructurada
+                    const match = l.match(/(.*?)\[Responsable:\s*(.*?)\s*\|\s*Fecha:\s*(.*?)\]/);
+                    if(match) {
+                        const desc = match[1].replace(/^\d+\.\s/, '').trim();
+                        compromisosHtml += `
+                            <li class="list-group-item p-2 small">
+                                <strong>${desc}</strong><br>
+                                <span class="text-info"><i class="fas fa-user"></i> ${match[2]}</span> &nbsp;|&nbsp; 
+                                <span class="text-warning"><i class="fas fa-calendar"></i> ${match[3]}</span>
+                            </li>`;
+                    } else {
+                        compromisosHtml += `<li class="list-group-item p-2 small">${l}</li>`;
+                    }
+                });
+                compromisosHtml += '</ul>';
+            }
+
             html += `
-                <div class="acta-section">
-                    <h5><strong>Punto del Temario:</strong> ${item.temario_code || ''}</h5>
-                    <h6>Intervenciones:</h6>
-                    <p>${item.intervenciones || 'No hay intervenciones registradas.'}</p>
-                    <h6>Compromisos:</h6>
-                    <div>${item.compromisos ? parseCompromisos(item.compromisos) : '<p class="text-muted small">No hay compromisos para este punto.</p>'}</div>
-                </div>
-                <hr class="my-3">
-            `;
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-header bg-light py-2">
+                        <strong>${item.temario_code || 'Punto sin título'}</strong>
+                    </div>
+                    <div class="card-body py-2">
+                        <p class="card-text mb-2 text-justify">${item.intervenciones || 'Sin intervenciones.'}</p>
+                        <h6 class="text-primary mt-3" style="font-size: 0.9em;">Compromisos:</h6>
+                        ${compromisosHtml}
+                    </div>
+                </div>`;
         });
     } else {
-        html += '<p>No hay contenido detallado para esta acta.</p>';
+        html += '<div class="alert alert-info">Aún no se ha registrado el desarrollo detallado de esta acta.</div>';
     }
 
     container.innerHTML = html;
 }
 
-function parseCompromisos(compromisosTexto) {
-    if (!compromisosTexto || typeof compromisosTexto !== 'string' || compromisosTexto.trim() === '') {
-        return '<p class="text-muted small">No hay compromisos para este punto.</p>';
-    }
-    let html = '<table class="table table-sm table-bordered" style="font-size: 0.9em;"><thead><tr><th>Compromiso</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody>';
-    const lineas = compromisosTexto.trim().split(/\\n|\n/);
-    lineas.forEach(linea => {
-        const match = linea.match(/(\d+\.\s)?(.*)\[Responsable:\s(.*)\s\|\sFecha:\s(.*)\]/);
-        if (match) {
-            html += `<tr><td>${match[2].trim()}</td><td>${match[3].trim()}</td><td>${match[4].trim()}</td></tr>`;
-        }
-    });
-    html += '</tbody></table>';
-    return html;
-}
-
-// --- INICIO DE LA FUNCIÓN CORREGIDA ---
 function enviarFirma(token, signatureData, backendUrl, actaCodigo) {
-    const boton = document.getElementById('save-signature');
+    const btnGuardar = document.getElementById('save-signature');
+    
+    // Convertir la imagen base64 a un blob si fuera necesario, 
+    // pero el backend actual parece aceptar el string base64 directo en el JSON.
+    const payload = {
+        firma: signatureData,
+        acta_codigo: actaCodigo
+    };
 
     fetch(`${backendUrl}firmas-users/crear`, {
         method: 'POST',
@@ -179,35 +203,23 @@ function enviarFirma(token, signatureData, backendUrl, actaCodigo) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ firma: signatureData, acta_codigo: actaCodigo })
+        body: JSON.stringify(payload)
     })
-    .then(response => {
-        // 'response.ok' es true solo para respuestas exitosas (ej: 200, 201)
+    .then(async response => {
+        const data = await response.json();
         if (!response.ok) {
-            // Si la respuesta es un error, leemos el mensaje de error del backend
-            return response.json().then(errorData => {
-                // Y lo lanzamos para que sea atrapado por el bloque .catch()
-                throw new Error(errorData.message || 'Ocurrió un error en el servidor.');
-            });
+            throw new Error(data.message || 'Error al guardar la firma.');
         }
-        return response.json(); // Si fue exitosa, continúa normalmente
+        return data;
     })
     .then(data => {
-        // Esta parte ahora solo se ejecuta si la firma fue realmente exitosa
-        if (data.message) {
-            sessionStorage.removeItem('asistenciaToken');
-            window.location.href = 'gracias.php';
-        }
+        sessionStorage.removeItem('asistenciaToken'); // Limpiar token usado
+        window.location.href = 'gracias.php'; // Redirigir a página de agradecimiento
     })
     .catch(error => {
-        // Este bloque ahora atrapará el error de firma duplicada
-        console.error('Error al guardar la firma:', error);
-        // Mostramos el mensaje de error específico que viene del backend
-        alert(`Error: ${error.message}`);
-        
-        // Volvemos a habilitar el botón para que el usuario pueda intentarlo de nuevo si es necesario
-        boton.disabled = false;
-        boton.textContent = 'Guardar Firma';
+        console.error("Error firma:", error);
+        alert(error.message);
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = 'Guardar Firma';
     });
 }
-// --- FIN DE LA FUNCIÓN CORREGIDA ---
