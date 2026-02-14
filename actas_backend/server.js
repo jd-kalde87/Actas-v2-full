@@ -2,7 +2,7 @@
 
 const express = require('express');
 const cors = require('cors');
-app.use(cors());
+require('dotenv').config();
 const db = require('./config/db');
 
 const app = express();
@@ -20,8 +20,7 @@ app.use('/actas', require('./routes/actas'));
 app.use('/contenido-actas', require('./routes/contenido'));
 app.use('/firmas-users', require('./routes/firmas'));
 
-const PORT = process.env.PORT || 3000; 
-
+const PORT = 3000;
 app.listen(PORT, () => {
-    console.log(`✅ Servidor corriendo en puerto: ${PORT}`);
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
