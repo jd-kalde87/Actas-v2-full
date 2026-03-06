@@ -5,6 +5,15 @@ window.inicializarVista = function() {
 
     mainContent.on('click', '#btn-guardar-usuario', function() {
         // 1. Recolectar todos los datos del formulario
+        const rol = $('#rol-crear').val();
+        const contrasena = $('#contrasena-crear').val();
+        const admin = rol === 'administrador';
+        const colaborador = rol === 'colaborador';
+        if ((admin || colaborador) && (!contrasena || contrasena.length < 4)) {
+            window.mostrarNotificacion('La contraseña es obligatoria para Administrador y Colaborador (mínimo 4 caracteres).', 'warning');
+            return;
+        }
+
         const datosUsuario = {
             cedula: $('#cedula-crear').val(),
             nombre: $('#nombre-crear').val(),
@@ -13,12 +22,12 @@ window.inicializarVista = function() {
             telefono: $('#telefono-crear').val(),
             empresa: $('#empresa-crear').val(),
             cargo: $('#cargo-crear').val(),
-            contrasena: $('#contrasena-crear').val(),
-            admin: $('#admin-crear').is(':checked'),
-            estado: "activo" // Por defecto, los nuevos usuarios se crean como activos
+            contrasena: contrasena || undefined,
+            admin: admin,
+            colaborador: colaborador,
+            estado: 'activo'
         };
 
-        // 2. Validar que los campos requeridos no estén vacíos
         if (!datosUsuario.cedula || !datosUsuario.nombre || !datosUsuario.apellidos || !datosUsuario.email) {
             window.mostrarNotificacion('Por favor, complete todos los campos requeridos.', 'warning');
             return;

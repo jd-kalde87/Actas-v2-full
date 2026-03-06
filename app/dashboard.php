@@ -21,6 +21,7 @@
                     <a href="#" class="small-box-footer" data-vista="lista_actas">Ver listado <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
+            <?php if (!empty($_SESSION['user_admin'])): ?>
             <div class="col-lg-3 col-6">
                 <div class="small-box bg-success">
                     <div class="inner">
@@ -32,6 +33,7 @@
                     <a href="#" class="small-box-footer" data-vista="lista_usuarios">Gestionar usuarios <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
         <div class="row">
             <div class="col-12">

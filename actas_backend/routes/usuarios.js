@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const usuarioController = require('../controllers/usuarioController');
 const authMiddleware = require('../middleware/authMiddleware');
+const adminMiddleware = require('../middleware/adminMiddleware');
 
 
 // --- Rutas Públicas ---
@@ -21,8 +22,9 @@ router.post('/crear-asistente', usuarioController.crearAsistentePublico);
 router.get('/obtener', authMiddleware, usuarioController.obtenerUsuarios);
 router.get('/verificar-token', authMiddleware, usuarioController.verificarToken);
 router.get('/obtener/:cedula', authMiddleware, usuarioController.obtenerUsuarioPorCedula);
-router.post('/crear', authMiddleware, usuarioController.crearUsuario);
-router.patch('/actualizar/:cedula', authMiddleware, usuarioController.actualizarUsuario);
-router.delete('/eliminar/:cedula', authMiddleware, usuarioController.eliminarUsuario);
+router.post('/crear', authMiddleware, adminMiddleware, usuarioController.crearUsuario);
+router.patch('/actualizar/:cedula', authMiddleware, adminMiddleware, usuarioController.actualizarUsuario);
+router.patch('/cambiar-contrasena/:cedula', authMiddleware, adminMiddleware, usuarioController.cambiarContrasena);
+router.delete('/eliminar/:cedula', authMiddleware, adminMiddleware, usuarioController.eliminarUsuario);
 
 module.exports = router;

@@ -17,8 +17,9 @@ if (empty($codigo_acta)) {
     <link rel="stylesheet" href="libs/admin-lte/plugins/fontawesome-free/css/all.min.css">
     <link rel="stylesheet" href="libs/admin-lte/dist/css/adminlte.min.css">
     
+    <link rel="stylesheet" href="libs/admin-lte/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
     <link rel="stylesheet" href="./assets/css/style.css">
-    </head>
+</head>
 <body class="firma-page">
 
 <div id="main-container" 
@@ -29,7 +30,7 @@ if (empty($codigo_acta)) {
         <div class="row justify-content-center">
             <div class="col-md-10 col-lg-8">
                 <div class="text-center mb-4">
-                    <img src="assets/img/logo2.png" alt="Logo VOSIN" style="max-height: 80px;">
+                    <img src="assets/img/logo2.png" alt="Logo VOSIN" class="logo-img logo-img-thanks">
                 </div>
 
                 <div class="card card-primary card-outline" id="acta-container">
@@ -43,12 +44,12 @@ if (empty($codigo_acta)) {
                             </div>
                             <p class="mt-2">Cargando datos del acta...</p>
                         </div>
-                        <div id="acta-content" style="display: none;">
+                        <div id="acta-content" class="hidden">
                             </div>
                     </div>
                 </div>
 
-                <div class="card card-primary card-outline" id="firma-container" style="display: none;">
+                <div class="card card-primary card-outline hidden" id="firma-container">
                     <div class="card-header">
                         <h3 class="card-title">Confirmación y Firma</h3>
                     </div>
@@ -75,6 +76,7 @@ if (empty($codigo_acta)) {
     </div>
 </div>
 
+<script src="libs/admin-lte/plugins/sweetalert2/sweetalert2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 <script src="assets/js/modules/firmar_acta.js"></script>
 </body>

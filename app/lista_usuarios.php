@@ -18,7 +18,7 @@
             <div class="card-header">
                 <h3 class="card-title">Listado de Usuarios Registrados</h3>
             </div>
-            <div class="card-body">
+            <div class="card-body table-responsive">
 
                 <div id="spinner-usuarios" class="text-center p-4">
                     <div class="spinner-border text-primary" role="status">
@@ -27,7 +27,7 @@
                     <p class="mt-2">Cargando datos de los usuarios...</p>
                 </div>
 
-                <table id="tabla-usuarios" class="table table-bordered table-striped" style="width:100%; display:none;">
+                <table id="tabla-usuarios" class="table table-bordered table-striped w-100 hidden">
                     <thead>
                         <tr>
                             <th>Cédula</th>

@@ -55,11 +55,13 @@ $usuario_cedula = htmlspecialchars($_POST['id'] ?? 'Error');
                                     <option value="inactivo">Inactivo</option>
                                 </select>
                             </div>
-                             <div class="form-group">
-                                <div class="custom-control custom-switch">
-                                    <input type="checkbox" class="custom-control-input" id="admin-editar">
-                                    <label class="custom-control-label" for="admin-editar">Es Administrador</label>
-                                </div>
+                            <div class="form-group">
+                                <label for="rol-editar">Rol</label>
+                                <select class="form-control" id="rol-editar" required>
+                                    <option value="asistente">Asistente</option>
+                                    <option value="colaborador">Colaborador</option>
+                                    <option value="administrador">Administrador</option>
+                                </select>
                             </div>
                         </div>
                     </div>

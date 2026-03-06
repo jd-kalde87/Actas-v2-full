@@ -23,7 +23,8 @@ window.inicializarVista = function(cedulaUsuario) {
                 $('#empresa-editar').val(usuario.empresa);
                 $('#cargo-editar').val(usuario.cargo);
                 $('#estado-editar').val(usuario.estado);
-                $('#admin-editar').prop('checked', usuario.admin === 1);
+                const rol = usuario.admin === 1 ? 'administrador' : (usuario.colaborador === 1 ? 'colaborador' : 'asistente');
+                $('#rol-editar').val(rol);
                 
                 spinner.hide();
                 form.show();
@@ -41,6 +42,7 @@ window.inicializarVista = function(cedulaUsuario) {
 
     // --- MODIFICACIÓN 2: Usamos apiFetch para enviar la actualización ---
     $('#btn-actualizar-usuario').on('click', function() {
+        const rol = $('#rol-editar').val();
         const datosActualizados = {
             nombre: $('#nombre-editar').val(),
             apellidos: $('#apellidos-editar').val(),
@@ -49,7 +51,8 @@ window.inicializarVista = function(cedulaUsuario) {
             empresa: $('#empresa-editar').val(),
             cargo: $('#cargo-editar').val(),
             estado: $('#estado-editar').val(),
-            admin: $('#admin-editar').is(':checked') ? 1 : 0
+            admin: rol === 'administrador' ? 1 : 0,
+            colaborador: rol === 'colaborador' ? 1 : 0
         };
 
         // La configuración es más simple: solo indicamos el método y el cuerpo.

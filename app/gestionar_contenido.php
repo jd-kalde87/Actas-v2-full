@@ -55,7 +55,7 @@ $acta_codigo = htmlspecialchars($_POST['id'] ?? 'Error');
                     <div class="card-header">
                         <h3 class="card-title">Contenido ya Registrado</h3>
                     </div>
-                    <div class="card-body" id="contenido-existente-container" style="max-height: 500px; overflow-y: auto;">
+                    <div class="card-body contenido-scroll" id="contenido-existente-container">
                         <p class="text-muted">Aún no se ha añadido contenido a esta acta.</p>
                     </div>
                 </div>

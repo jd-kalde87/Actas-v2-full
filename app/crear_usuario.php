@@ -49,14 +49,16 @@
                             </div>
                             <div class="form-group">
                                 <label for="contrasena-crear">Contraseña</label>
-                                <input type="password" class="form-control" id="contrasena-crear">
-                                <small class="form-text text-muted">Dejar en blanco para usuarios asistentes. Solo es necesaria para administradores.</small>
+                                <input type="password" class="form-control" id="contrasena-crear" placeholder="Requerida para Administrador y Colaborador">
+                                <small class="form-text text-muted">Obligatoria para quienes acceden al sistema (Administrador y Colaborador).</small>
                             </div>
-                             <div class="form-group">
-                                <div class="custom-control custom-switch">
-                                    <input type="checkbox" class="custom-control-input" id="admin-crear">
-                                    <label class="custom-control-label" for="admin-crear">Es Administrador</label>
-                                </div>
+                            <div class="form-group">
+                                <label for="rol-crear">Rol</label>
+                                <select class="form-control" id="rol-crear" required>
+                                    <option value="asistente">Asistente (solo firma actas, no accede al panel)</option>
+                                    <option value="colaborador">Colaborador (crea y gestiona actas, sin eliminar/finalizar ni gestionar usuarios)</option>
+                                    <option value="administrador">Administrador (acceso completo)</option>
+                                </select>
                             </div>
                         </div>
                     </div>

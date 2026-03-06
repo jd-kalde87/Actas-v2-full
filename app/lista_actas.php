@@ -15,7 +15,7 @@
 <div class="content">
     <div class="container-fluid">
         <div class="card">
-            <div class="card-body">
+            <div class="card-body table-responsive">
 
                 <div id="spinner-actas" class="text-center p-4">
                     <div class="spinner-border text-primary" role="status">
@@ -24,7 +24,7 @@
                     <p class="mt-2">Cargando datos de las actas...</p>
                 </div>
 
-                <table id="tabla-actas" class="table table-bordered table-striped" style="width:100%; display:none;">
+                <table id="tabla-actas" class="table table-bordered table-striped w-100 hidden">
                     <thead>
                         <tr>
                             <th>Código</th>
@@ -38,7 +38,25 @@
                     <tbody>
                         </tbody>
                 </table>
-                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal previsualización acta -->
+<div class="modal fade modal-preview-acta" id="modal-preview-acta" tabindex="-1" aria-labelledby="modal-preview-acta-label" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal-preview-acta-label">Previsualización del acta</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body" id="modal-preview-acta-body">
+                <div class="text-center text-muted py-4"><span class="fas fa-spinner fa-spin"></span> Cargando...</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
         </div>
     </div>
 </div>

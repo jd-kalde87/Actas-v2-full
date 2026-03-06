@@ -47,16 +47,16 @@ if (empty($codigo_acta)) {
                         <div class="col-12">
                             <button type="submit" id="btn-validar" class="btn btn-primary btn-block">
                                 <span id="btn-text">Validar e Ingresar</span>
-                                <span id="btn-spinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                                <span id="btn-spinner" class="spinner-border spinner-border-sm hidden" role="status" aria-hidden="true"></span>
                             </button>
                         </div>
                     </div>
                 </form>
-                <div id="error-message" class="alert alert-danger mt-3 text-center" style="display: none;"></div>
+                <div id="error-message" class="alert alert-danger mt-3 text-center hidden" role="alert"></div>
             </div>
         </div>
     </div>
-<div id="errorModal" class="modal-overlay" style="display: none;">
+<div id="errorModal" class="modal-overlay hidden" aria-hidden="true">
     <div class="modal-content">
         <div class="modal-header">
             <h4>Acción no permitida</h4>

@@ -20,7 +20,7 @@ window.inicializarVista = function(actaCodigo) {
                         
                         // Renderizado de compromisos (sin cambios)
                         if (item.compromisos && item.compromisos.trim() !== '') {
-                            compromisosHtml = '<table class="table table-sm table-bordered" style="font-size: 0.9em;"><thead><tr><th>Compromiso</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody>';
+                            compromisosHtml = '<table class="table table-sm table-bordered tabla-compromisos"><thead><tr><th>Compromiso</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody>';
                             // Normalizamos saltos de línea por si acaso
                             const lineas = item.compromisos.trim().split(/\r?\n/);
                             lineas.forEach(linea => {
@@ -39,8 +39,8 @@ window.inicializarVista = function(actaCodigo) {
                         const contenidoHtml = `
                             <div class="callout callout-info" data-item-id="${item.id}">
                                 <div class="float-right">
-                                    <button class="btn btn-xs btn-primary btn-editar-contenido" title="Editar"><i class="fas fa-pencil-alt"></i></button>
-                                    <button class="btn btn-xs btn-danger btn-eliminar-contenido" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                    <button class="btn btn-act btn-outline-primary btn-editar-contenido" title="Editar"><i class="fas fa-pen"></i></button>
+                                    <button class="btn btn-act btn-outline-danger btn-eliminar-contenido" title="Eliminar"><i class="fas fa-trash"></i></button>
                                 </div>
                                 <h5>${item.temario_code}</h5>
                                 <strong>Intervenciones:</strong>
@@ -139,7 +139,7 @@ window.inicializarVista = function(actaCodigo) {
                         </div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-xs btn-outline-danger mt-2 btn-remover-compromiso" style="width:100%">Eliminar Compromiso</button>
+                <button type="button" class="btn btn-xs btn-outline-danger mt-2 btn-remover-compromiso">Eliminar Compromiso</button>
             </div>`;
         $('#contenedor-compromisos').append(nuevoCompromisoHtml);
     });
@@ -225,17 +225,27 @@ window.inicializarVista = function(actaCodigo) {
 
     // Botón Eliminar Contenido
     mainContent.off('click', '.btn-eliminar-contenido').on('click', '.btn-eliminar-contenido', function() {
-        if (confirm('¿Estás seguro de que deseas eliminar este registro de contenido?')) {
-            const itemId = $(this).closest('.callout').data('item-id');
-            apiFetch(`contenido-actas/eliminar/${itemId}`, {
-                method: 'DELETE'
-            }).then(() => {
-                window.mostrarNotificacion('Registro eliminado.', 'success');
-                cargarContenidoExistente();
-            }).catch(error => {
-                window.mostrarNotificacion('Error al eliminar.', 'danger');
-            });
-        }
+        const itemId = $(this).closest('.callout').data('item-id');
+        Swal.fire({
+            title: '¿Eliminar registro?',
+            text: '¿Estás seguro de que deseas eliminar este registro de contenido?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                apiFetch(`contenido-actas/eliminar/${itemId}`, { method: 'DELETE' })
+                    .then(() => {
+                        Swal.fire({ title: 'Eliminado', text: 'Registro eliminado.', icon: 'success', confirmButtonColor: '#2C3E50' });
+                        cargarContenidoExistente();
+                    })
+                    .catch(() => {
+                        Swal.fire({ title: 'Error', text: 'No se pudo eliminar.', icon: 'error', confirmButtonColor: '#2C3E50' });
+                    });
+            }
+        });
     });
     
     // Botón Editar Contenido (Cargar datos al formulario)

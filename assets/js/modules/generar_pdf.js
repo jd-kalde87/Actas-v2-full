@@ -27,7 +27,7 @@ window.inicializarVista = function(actaCodigo) {
             // --- MODIFICACIÓN 1: Añadir todos los campos a "Información General" ---
             $('#pdf-info-general').append(`
                 <p><strong>Tema principal:</strong> ${acta.tema || 'N/A'}</p>
-                <p><strong>Tipo de Reunión:</strong> ${acta.tipo_reunion || 'N/A'}</p>
+                <p><strong>Tipo de Reunión:</strong> ${acta.tipo_reunion_descripcion || acta.tipo_reunion || 'N/A'}</p>
                 <p><strong>Lugar:</strong> ${acta.lugar || 'N/A'}</p>
                 <p><strong>Fecha:</strong> ${acta.fecha ? new Date(acta.fecha).toLocaleDateString('es-CO') : 'N/A'}</p>
                 <p><strong>Hora Inicio:</strong> ${acta.horaInicio || 'N/A'}</p>

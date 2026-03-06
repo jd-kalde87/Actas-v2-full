@@ -47,6 +47,10 @@ exports.crearFirma = async (req, res) => {
 
         // 2. Actualizar la lista de usuarios en la tabla 'acta'
         const [actas] = await connection.query('SELECT usuarios FROM acta WHERE codigo = ?', [acta_codigo]);
+        if (!actas || actas.length === 0) {
+            await connection.rollback();
+            return res.status(500).json({ message: 'Error al actualizar el acta.' });
+        }
         let usuariosActuales = actas[0].usuarios ? actas[0].usuarios.split(',') : [];
 
         if (!usuariosActuales.includes(String(cedula))) {

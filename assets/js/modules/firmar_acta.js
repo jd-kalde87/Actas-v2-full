@@ -14,8 +14,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const token = sessionStorage.getItem('asistenciaToken');
 
     if (!token) {
-        alert('Acceso denegado. Por favor, valide su documento primero.');
-        window.location.href = `asistencia.php?codigo=${ACTA_CODIGO}`;
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({ title: 'Acceso denegado', text: 'Por favor, valide su documento primero.', icon: 'warning', confirmButtonColor: '#2C3E50' }).then(() => { window.location.href = `asistencia.php?codigo=${ACTA_CODIGO}`; });
+        } else {
+            alert('Acceso denegado. Por favor, valide su documento primero.');
+            window.location.href = `asistencia.php?codigo=${ACTA_CODIGO}`;
+        }
         return;
     }
 
@@ -27,8 +31,12 @@ document.addEventListener('DOMContentLoaded', function() {
         cargarDatosActa(token, BACKEND_URL, ACTA_CODIGO);
     } catch (e) {
         console.error("Error al decodificar token:", e);
-        alert("Sesión inválida.");
-        window.location.href = `asistencia.php?codigo=${ACTA_CODIGO}`;
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({ title: 'Sesión inválida', text: 'Por favor, valide su documento de nuevo.', icon: 'error', confirmButtonColor: '#2C3E50' }).then(() => { window.location.href = `asistencia.php?codigo=${ACTA_CODIGO}`; });
+        } else {
+            alert("Sesión inválida.");
+            window.location.href = `asistencia.php?codigo=${ACTA_CODIGO}`;
+        }
     }
 
     // Inicializar SignaturePad
@@ -40,7 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         document.getElementById('save-signature').addEventListener('click', () => {
             if (signaturePad.isEmpty()) {
-                return alert("Por favor, provea su firma antes de guardar.");
+                if (typeof Swal !== 'undefined') Swal.fire({ title: 'Firma requerida', text: 'Por favor, firme en el recuadro antes de guardar.', icon: 'warning', confirmButtonColor: '#2C3E50' });
+                else alert("Por favor, provea su firma antes de guardar.");
+                return;
             }
             
             const btnGuardar = document.getElementById('save-signature');
@@ -80,9 +90,9 @@ async function cargarDatosActa(token, backendUrl, actaCodigo) {
         // 3. Renderizar
         renderizarActa(acta, contenido);
         
-        if(loadingSpinner) loadingSpinner.style.display = 'none';
-        if(actaContent) actaContent.style.display = 'block';
-        if(firmaContainer) firmaContainer.style.display = 'block';
+        if(loadingSpinner) loadingSpinner.classList.add('hidden');
+        if(actaContent) actaContent.classList.remove('hidden');
+        if(firmaContainer) firmaContainer.classList.remove('hidden');
 
     } catch (error) {
         console.error("Error carga:", error);
@@ -127,7 +137,7 @@ function renderizarActa(acta, contenido) {
             <h4 class="font-weight-bold">${acta.tema || 'Sin Tema'}</h4>
             <p class="text-muted mb-0">Código: ${acta.codigo}</p>
         </div>
-        <div class="row mb-3" style="font-size: 0.95em;">
+        <div class="row mb-3 acta-meta-row">
             <div class="col-6">
                 <p class="mb-1"><strong>Fecha:</strong> ${acta.fecha || 'N/A'}</p>
                 <p class="mb-1"><strong>Lugar:</strong> ${acta.lugar || 'N/A'}</p>
@@ -175,7 +185,7 @@ function renderizarActa(acta, contenido) {
                     </div>
                     <div class="card-body py-2">
                         <p class="card-text mb-2 text-justify">${item.intervenciones || 'Sin intervenciones.'}</p>
-                        <h6 class="text-primary mt-3" style="font-size: 0.9em;">Compromisos:</h6>
+                        <h6 class="text-primary mt-3 tabla-compromisos">Compromisos:</h6>
                         ${compromisosHtml}
                     </div>
                 </div>`;
@@ -218,8 +228,9 @@ function enviarFirma(token, signatureData, backendUrl, actaCodigo) {
     })
     .catch(error => {
         console.error("Error firma:", error);
-        alert(error.message);
+        if (typeof Swal !== 'undefined') Swal.fire({ title: 'Error', text: error.message, icon: 'error', confirmButtonColor: '#2C3E50' });
+        else alert(error.message);
         btnGuardar.disabled = false;
-        btnGuardar.textContent = 'Guardar Firma';
+        btnGuardar.innerHTML = 'Guardar y Enviar Firma';
     });
 }

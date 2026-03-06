@@ -24,6 +24,12 @@ $(document).ready(function() {
      * @param {string|null} [id=null] - Un ID opcional para pasar a la vista.
      */
     window.cargarVista = function(vista, id = null) {
+        var vistasSoloAdmin = ['lista_usuarios', 'crear_usuario', 'editar_usuario'];
+        if (vistasSoloAdmin.indexOf(vista) !== -1 && typeof APP_CONFIG !== 'undefined' && !APP_CONFIG.userAdmin) {
+            window.mostrarNotificacion('Solo un administrador puede acceder a la gestión de usuarios.', 'warning');
+            window.cargarVista('dashboard');
+            return;
+        }
         let url = 'app/' + vista + '.php';
         let dataToSend = { id: id };
 

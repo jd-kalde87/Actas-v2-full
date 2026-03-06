@@ -40,15 +40,17 @@ exports.loginUsuario = async (req, res) => {
             return res.status(401).json({ message: 'Credenciales incorrectas.' }); 
         }
 
-        if (!usuario.admin) { 
-            console.log("❌ El usuario existe y la clave es correcta, pero NO ES ADMIN");
-            return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de administrador.' }); 
+        const esAdmin = !!usuario.admin;
+        const esColaborador = !!(usuario.colaborador === 1 || usuario.colaborador === true);
+        if (!esAdmin && !esColaborador) {
+            console.log("❌ El usuario no tiene permiso para acceder al panel (requiere Administrador o Colaborador).");
+            return res.status(403).json({ message: 'Acceso denegado. Solo usuarios con rol Administrador o Colaborador pueden acceder al sistema.' });
         }
 
         console.log("🚀 LOGIN EXITOSO");
-        const payload = { cedula: usuario.cedula, nombre: usuario.nombre };
+        const payload = { cedula: usuario.cedula, nombre: usuario.nombre, admin: esAdmin, colaborador: esColaborador };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token, nombre: usuario.nombre, admin: usuario.admin });
+        res.json({ token, nombre: usuario.nombre, admin: esAdmin, colaborador: esColaborador });
 
     } catch (error) {
         console.error("🔥 Error CRÍTICO en el login:", error);
@@ -77,10 +79,21 @@ exports.obtenerUsuarioParaFirma = async (req, res) => {
 // --- Lógica para Obtener todos los Usuarios ---
 exports.obtenerUsuarios = async (req, res) => {
     try {
-        const query = `SELECT cedula, nombre, apellidos, email, empresa, cargo, admin, estado FROM usuario`;
-        const [rows] = await db.query(query);
+        let query = `SELECT cedula, nombre, apellidos, email, empresa, cargo, admin, colaborador, estado FROM usuario`;
+        let [rows] = await db.query(query);
+        if (rows.length === 0) return res.json([]);
         res.json(rows);
     } catch (error) {
+        if (error.code === 'ER_BAD_FIELD_ERROR' && error.message && error.message.includes('colaborador')) {
+            try {
+                const [rows] = await db.query(`SELECT cedula, nombre, apellidos, email, empresa, cargo, admin, estado FROM usuario`);
+                const rowsConRol = rows.map(r => ({ ...r, colaborador: 0 }));
+                return res.json(rowsConRol);
+            } catch (err2) {
+                console.error("Error al obtener los usuarios:", err2);
+                return res.status(500).json({ message: 'Error en el servidor al obtener usuarios.' });
+            }
+        }
         console.error("Error al obtener los usuarios:", error);
         res.status(500).json({ message: 'Error en el servidor al obtener usuarios.' });
     }
@@ -103,15 +116,16 @@ exports.obtenerUsuarioPorCedula = async (req, res) => {
 
 // --- Lógica para Crear un Nuevo Usuario ---
 exports.crearUsuario = async (req, res) => {
-    const { cedula, nombre, apellidos, email, empresa, cargo, contrasena, admin, estado } = req.body;
+    const { cedula, nombre, apellidos, email, empresa, cargo, contrasena, admin, colaborador, estado } = req.body;
     try {
         const salt = await bcrypt.genSalt(10);
-        const contrasenaEncriptada = await bcrypt.hash(contrasena, salt);
+        const contrasenaEncriptada = await bcrypt.hash(contrasena || cedula.toString(), salt);
 
         const nuevoUsuario = {
-            cedula, nombre, apellidos, email, empresa, cargo, 
+            cedula, nombre, apellidos, email, empresa, cargo,
             contrasena: contrasenaEncriptada,
-            admin: admin ? 1 : 0, 
+            admin: admin ? 1 : 0,
+            colaborador: colaborador ? 1 : 0,
             estado: estado || 'activo'
         };
 
@@ -132,13 +146,17 @@ exports.actualizarUsuario = async (req, res) => {
     let camposAActualizar = { ...req.body };
 
     try {
-        // CORRECCIÓN: Si la contraseña viene vacía o no existe en la petición, 
-        // la eliminamos del objeto para que no se sobreescriba en la BD.
         if (camposAActualizar.contrasena && camposAActualizar.contrasena.trim() !== "") {
             const salt = await bcrypt.genSalt(10);
             camposAActualizar.contrasena = await bcrypt.hash(camposAActualizar.contrasena, salt);
         } else {
             delete camposAActualizar.contrasena;
+        }
+        if (typeof camposAActualizar.admin !== 'undefined') {
+            camposAActualizar.admin = camposAActualizar.admin ? 1 : 0;
+        }
+        if (typeof camposAActualizar.colaborador !== 'undefined') {
+            camposAActualizar.colaborador = camposAActualizar.colaborador ? 1 : 0;
         }
 
         const [result] = await db.query('UPDATE usuario SET ? WHERE cedula = ?', [camposAActualizar, cedula]);
@@ -149,6 +167,35 @@ exports.actualizarUsuario = async (req, res) => {
     } catch (error) {
         console.error("Error al actualizar usuario:", error);
         res.status(500).json({ message: 'Error en el servidor al actualizar usuario.' });
+    }
+};
+
+// --- Lógica para que el ADMIN cambie/restablezca la contraseña de un usuario ---
+exports.cambiarContrasena = async (req, res) => {
+    const { cedula } = req.params;
+    const { nuevaContrasena } = req.body;
+
+    if (!nuevaContrasena || typeof nuevaContrasena !== 'string' || nuevaContrasena.trim().length < 4) {
+        return res.status(400).json({ message: 'La nueva contraseña es obligatoria y debe tener al menos 4 caracteres.' });
+    }
+
+    try {
+        const [rows] = await db.query('SELECT cedula FROM usuario WHERE cedula = ?', [cedula]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const contrasenaEncriptada = await bcrypt.hash(nuevaContrasena.trim(), salt);
+        const [result] = await db.query('UPDATE usuario SET contrasena = ? WHERE cedula = ?', [contrasenaEncriptada, cedula]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+        res.json({ message: 'Contraseña actualizada correctamente.' });
+    } catch (error) {
+        console.error('Error al cambiar contraseña:', error);
+        res.status(500).json({ message: 'Error en el servidor al cambiar la contraseña.' });
     }
 };
 

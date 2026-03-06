@@ -12,6 +12,7 @@ $codigo_acta = htmlspecialchars($_GET['codigo'] ?? '');
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <link rel="stylesheet" href="libs/admin-lte/plugins/fontawesome-free/css/all.min.css">
     <link rel="stylesheet" href="libs/admin-lte/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="hold-transition register-page">
 <div class="register-box">
@@ -34,7 +35,7 @@ $codigo_acta = htmlspecialchars($_GET['codigo'] ?? '');
                 <input type="text" class="form-control mb-3" id="cargo" placeholder="Cargo" required>
                 <button type="submit" id="btn-registrar" class="btn btn-primary btn-block">Registrarme</button>
             </form>
-            <div id="message" class="alert mt-3 text-center" style="display: none;"></div>
+            <div id="message" class="alert mt-3 text-center message-feedback hidden" role="alert"></div>
         </div>
     </div>
 </div>
@@ -49,7 +50,8 @@ $codigo_acta = htmlspecialchars($_GET['codigo'] ?? '');
         const submitButton = document.getElementById('btn-registrar');
 
         // Ocultar mensajes de error anteriores
-        messageDiv.style.display = 'none';
+        messageDiv.classList.add('hidden');
+        messageDiv.classList.remove('visible');
         submitButton.disabled = true;
         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
         
@@ -85,9 +87,10 @@ $codigo_acta = htmlspecialchars($_GET['codigo'] ?? '');
         .then(data => {
             // Esto solo se ejecuta si el registro fue exitoso (status 201)
             submitButton.disabled = true;
-            messageDiv.className = 'alert alert-success mt-3 text-center';
+            messageDiv.className = 'alert alert-success mt-3 text-center message-feedback visible';
             messageDiv.innerHTML = `¡Registro exitoso! <br> Serás redirigido para que valides tu documento de nuevo.`;
-            messageDiv.style.display = 'block';
+            messageDiv.classList.remove('hidden');
+            messageDiv.classList.add('visible');
 
             // Redirigir de vuelta a la página de asistencia después de 3 segundos
             setTimeout(() => {
@@ -96,9 +99,10 @@ $codigo_acta = htmlspecialchars($_GET['codigo'] ?? '');
         })
         .catch(error => {
             // Ahora este 'catch' recibirá el mensaje de error específico del backend
-            messageDiv.className = 'alert alert-danger mt-3 text-center';
+            messageDiv.className = 'alert alert-danger mt-3 text-center message-feedback visible';
             messageDiv.textContent = `Error: ${error.message}`;
-            messageDiv.style.display = 'block';
+            messageDiv.classList.remove('hidden');
+            messageDiv.classList.add('visible');
             
             // Habilitar el botón de nuevo si hay un error
             submitButton.disabled = false;

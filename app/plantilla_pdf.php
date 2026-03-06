@@ -66,20 +66,23 @@ $acta_codigo = htmlspecialchars($_POST['id'] ?? 'ACTA-XXXX');
         text-align: left;
     }
     .asistencia-table th {
-        /* ▼▼ REEMPLAZA ESTE COLOR CON UNO DE TU style.css ▼▼ */
-        background-color: #2c3e50; /* Color oscuro de ejemplo */
-        color: white; /* Letra blanca para que contraste */
+        /* Alineado con assets/css/style.css --color-gris-texto (#2C3E50) */
+        background-color: #2C3E50;
+        color: white;
     }
     .firma-img {
         max-width: 120px;
         max-height: 40px;
+    }
+    .img-full-width {
+        width: 100%;
     }
 </style>
 
 <div id="pdf-template">
     <div class="pdf-header">
         <div class="header-col logo">
-            <img src="assets/img/logo2.png" alt="Logo VOSIN" style="width: 100%;">
+            <img src="assets/img/logo2.png" alt="Logo VOSIN" class="img-full-width">
         </div>
         <div class="header-col title">
             ACTA DE REUNIÓN

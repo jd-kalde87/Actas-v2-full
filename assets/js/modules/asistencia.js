@@ -19,10 +19,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Funciones para controlar el modal ---
     function mostrarModalError() {
-        errorModal.style.display = 'flex';
+        errorModal.classList.remove('hidden');
     }
     function ocultarModalError() {
-        errorModal.style.display = 'none';
+        errorModal.classList.add('hidden');
     }
 
     // Eventos para cerrar el modal
@@ -38,9 +38,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         btnValidar.disabled = true;
-        btnText.style.display = 'none';
-        btnSpinner.style.display = 'inline-block';
-        errorMessage.style.display = 'none';
+        btnText.classList.add('hidden');
+        btnSpinner.classList.remove('hidden');
+        errorMessage.classList.add('hidden');
 
         try {
             const verificacionUrl = `${BACKEND_URL}firmas-users/verificar`;
@@ -59,8 +59,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (verificacionData.yaFirmo) {
                 mostrarModalError();
                 btnValidar.disabled = false;
-                btnText.style.display = 'inline-block';
-                btnSpinner.style.display = 'none';
+                btnText.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
                 return; 
             }
             
@@ -92,14 +92,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (error.message !== 'Usuario no encontrado, redirigiendo a registro.') {
                 mostrarError(error.message);
                 btnValidar.disabled = false;
-                btnText.style.display = 'inline-block';
-                btnSpinner.style.display = 'none';
+                btnText.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
             }
         }
     });
 
     function mostrarError(mensaje) {
         errorMessage.textContent = mensaje;
-        errorMessage.style.display = 'block';
+        errorMessage.classList.remove('hidden');
     }
 });

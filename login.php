@@ -35,19 +35,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         $response_data = json_decode($response, true);
 
-        // Verificamos si el login fue exitoso
-        if (isset($response_data['token']) && isset($response_data['admin']) && $response_data['admin']) {
+        $puedeAcceder = isset($response_data['token']) && (isset($response_data['admin']) && $response_data['admin'] || isset($response_data['colaborador']) && $response_data['colaborador']);
+        if ($puedeAcceder) {
             $_SESSION['token'] = $response_data['token'];
             $_SESSION['user_nombre'] = $response_data['nombre'];
-            $_SESSION['user_admin'] = $response_data['admin']; // Guardamos el rol por si acaso
+            $_SESSION['user_admin'] = !empty($response_data['admin']);
+            $_SESSION['user_colaborador'] = !empty($response_data['colaborador']);
             header("Location: ./index.php");
             exit();
         } else {
-            // Si el backend nos respondió un mensaje de error, lo mostramos
-            if(isset($response_data['message'])) {
+            if (isset($response_data['message'])) {
                 $error_message = $response_data['message'];
             } else {
-                $error_message = 'Credenciales incorrectas o sin permiso de administrador.';
+                $error_message = 'Credenciales incorrectas o sin permiso para acceder al sistema.';
             }
         }
     }
@@ -82,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <?php endif; ?>
 
             <?php if ($debug_message): ?>
-                <div class="alert alert-warning text-center" style="font-size: 12px;">
+                <div class="alert alert-warning text-center text-small">
                     <strong>Debug:</strong> <?php echo htmlspecialchars($debug_message); ?>
                 </div>
             <?php endif; ?>

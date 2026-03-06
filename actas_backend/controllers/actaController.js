@@ -2,6 +2,27 @@
 
 const db = require('../config/db');
 
+// Estados posibles del acta (columna 'firma' en la tabla acta)
+const ESTADOS_ACTA = ['Borrador', 'Activo', 'Finalizado'];
+
+// Descripción de tipos de reunión (código → texto para PDF y listados)
+const TIPOS_REUNION = {
+    '1': 'Comité mensual',
+    '2': 'Verificación en campo',
+    '3': 'Virtual',
+    '7': 'Reunión General',
+    '10': 'Otros'
+};
+function descripcionTipoReunion(codigo) {
+    if (codigo === null || codigo === undefined) return 'N/A';
+    const key = String(codigo);
+    return TIPOS_REUNION[key] || 'Otros';
+}
+
+exports.obtenerEstadosActa = (req, res) => {
+    res.json({ estados: ESTADOS_ACTA });
+};
+
 // Lógica para obtener todas las actas
 exports.obtenerActas = async (req, res) => {
     try {
@@ -77,14 +98,25 @@ exports.actualizarActa = async (req, res) => {
             return res.status(404).json({ message: 'Acta no encontrada.' });
         }
         const actaActual = actas[0];
+        const actaFinalizada = actaActual.firma && String(actaActual.firma).toLowerCase() === 'finalizado';
 
-        // 2. Bloqueo si ya está finalizada
-        if (actaActual.firma && actaActual.firma.toLowerCase() === 'finalizado') {
-            return res.status(403).json({ 
-                message: 'Acción prohibida: Esta acta está finalizada y no puede ser modificada.' 
-            });
+        // 2. Solo el ADMINISTRADOR puede modificar (incl. cambiar estado) un acta finalizada
+        if (actaFinalizada) {
+            let esAdmin = req.usuario && (req.usuario.admin === true || req.usuario.admin === 1);
+            if (!esAdmin && req.usuario && req.usuario.cedula) {
+                const [usuarios] = await db.query('SELECT admin FROM usuario WHERE cedula = ?', [String(req.usuario.cedula)]);
+                if (usuarios.length > 0) {
+                    const adminVal = usuarios[0].admin;
+                    esAdmin = adminVal === 1 || adminVal === true || adminVal === '1' || Number(adminVal) === 1;
+                }
+            }
+            if (!esAdmin) {
+                return res.status(403).json({ 
+                    message: 'Acción prohibida: Esta acta está finalizada. Solo un administrador puede cambiar su estado o modificarla.' 
+                });
+            }
         }
-        
+
         // 3. Conversión segura de arrays a string con '||'
         if (camposAActualizar.temario && Array.isArray(camposAActualizar.temario)) {
             camposAActualizar.temario = camposAActualizar.temario.join('||');
@@ -180,8 +212,11 @@ exports.obtenerPdfData = async (req, res) => {
             return res.status(404).json({ message: 'Acta no encontrada.' });
         }
 
+        const acta = actas[0];
+        acta.tipo_reunion_descripcion = descripcionTipoReunion(acta.tipo_reunion);
+
         res.json({
-            acta: actas[0],
+            acta,
             contenido: contenidoResult[0], // contenidoResult[0] son las filas
             firmas: firmasResult[0]       // firmasResult[0] son las filas
         });
